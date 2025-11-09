@@ -214,3 +214,24 @@ def calculate_reading_speed(user_id):
     else:
         return 2.0
         
+# In data_file.py - make sure this function exists:
+def update_reading_speed(user_id):
+    """Update user's reading speed based on reading history"""
+    try:
+        new_speed = calculate_reading_speed(user_id)
+        
+        # Load users and update the reading speed
+        users = load_users()
+        if user_id in users:
+            users[user_id]['reading_speed'] = new_speed
+            save_users(users)
+            
+            # Also update session state if this is the current user
+            if 'user' in st.session_state and st.session_state.user['id'] == user_id:
+                st.session_state.user['reading_speed'] = new_speed
+                
+            return True
+        return False
+    except Exception as e:
+        print(f"Error updating reading speed: {e}")
+        return False
