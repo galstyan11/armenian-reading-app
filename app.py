@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-from modules.auth_file import show_auth_page, get_current_user, logout
-from modules.books_csv import load_books, show_all_books, show_recommendations, show_reading_plan
-from modules.users_file import show_statistics, show_reminders, show_settings
-from modules.creative_file import show_creative_works
+from modules.auth import show_auth_page, get_current_user, logout
+from modules.books import load_books, show_all_books, show_recommendations, show_reading_plan
+from modules.users import show_statistics, show_reminders, show_settings
+from modules.creative import show_creative_works
 from modules.utils import get_reading_time_recommendation, calculate_reading_plan
 
 def show_main_app(books_df):
