@@ -246,3 +246,25 @@ def show_settings(user, books_df):
                 
         except Exception as e:
             st.error(f"❌ Սխալ կարգավորումները պահպանելիս: {e}")
+
+def get_reading_insights(user_id):
+    """
+    Generate reading insights based on user's reading statistics
+    """
+    insights = []
+    
+    # You'll need to calculate or retrieve these values from your database
+    # For now, using placeholder values - replace with actual calculations
+    total_pages = 0  # Replace with actual total pages calculation
+    reading_speed = 0  # Replace with actual reading speed calculation (pages per minute)
+    
+    # Generate insights based on reading speed
+    if total_pages > 0:
+        if reading_speed > 3.0:
+            insights.append("🚀 Դուք արագ ընթերցող եք։ Հիանալի է տեխնիկական և գիտական գրքերի համար։")
+        elif reading_speed < 1.5:
+            insights.append("📖 Դուք չափավոր տեմպերով եք կարդում։ Սա օպտիմալ է գրականության և բանաստեղծությունների համար։")
+        else:
+            insights.append("⚡ Ձեր ընթերցման տեմպը հավասարակշռված է։ Գերազանց է բոլոր ժանրերի համար։")
+    
+    return insights
