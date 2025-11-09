@@ -163,3 +163,31 @@ def check_reminder_time(user_id):
     # This is a simplified version - in a real app you'd check current time
     # For now, we'll just return False to avoid constant notifications
     return False
+
+def delete_creative_work(work_id, user_id):
+    """Delete a creative work (only if user owns it)"""
+    try:
+        works = load_data('creative_works', [])
+        comments = load_data('creative_work_comments', [])
+        
+        # Find the work and verify ownership
+        work_to_delete = None
+        for work in works:
+            if work['id'] == work_id and work['user_id'] == user_id:
+                work_to_delete = work
+                break
+        
+        if not work_to_delete:
+            return False, "❌ Միայն կարող եք ջնջել ձեր սեփական ստեղծագործությունները"
+        
+        # Remove the work
+        works = [work for work in works if work['id'] != work_id]
+        save_data('creative_works', works)
+        
+        # Remove associated comments
+        comments = [comment for comment in comments if comment['creative_work_id'] != work_id]
+        save_data('creative_work_comments', comments)
+        
+        return True, "✅ Ստեղծագործությունը հաջողությամբ ջնջված է"
+    except Exception as e:
+        return False, f"❌ Ջնջման սխալ: {str(e)}"
