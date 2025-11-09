@@ -8,39 +8,70 @@ from modules.utils import calculate_reading_plan
 def show_statistics(user):
     st.subheader("📊 Իմ Ընթերցման Վիճակագրությունը")
     
+    # Get AI-powered insights
+    insights_data = get_reading_insights(user['id'])
+    
+    # Main statistics cards
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("📖 Ընդհանուր Գրքեր", insights_data['total_books'])
+    
+    with col2:
+        st.metric("📄 Ընդհանուր Էջեր", insights_data['total_pages'])
+    
+    with col3:
+        st.metric("⏱️ Ընդհանուր Ժամանակ", f"{insights_data['total_hours']} ժամ")
+    
+    with col4:
+        # Show reading speed in pages per minute
+        reading_speed_ppm = insights_data['reading_speed']
+        st.metric("🚀 Ընթերցման Արագություն", f"{reading_speed_ppm} էջ/րոպե")
+        
+        # Show reading level based on speed
+        if reading_speed_ppm < 1.5:
+            st.caption("📖 Դանդաղ ընթերցող")
+        elif reading_speed_ppm < 3.0:
+            st.caption("⚡ Միջին ընթերցող")
+        else:
+            st.caption("🚀 Արագ ընթերցող")
+    
+    # Weekly progress
+    st.subheader("📅 Շաբաթական Առաջընթաց")
+    col_week1, col_week2 = st.columns(2)
+    
+    with col_week1:
+        st.metric("📖 Անցած շաբաթվա էջեր", insights_data['weekly_pages'])
+    
+    with col_week2:
+        weekly_goal = 100  # 100 pages per week goal
+        progress = min(100, (insights_data['weekly_pages'] / weekly_goal) * 100)
+        st.metric("🎯 Շաբաթական նպատակ", f"{progress:.1f}%")
+    
+    # AI Insights
+    st.subheader("🤖 Անհատականացված Խորհուրդներ")
+    
+    if insights_data['insights']:
+        for insight in insights_data['insights']:
+            st.info(insight)
+    else:
+        st.info("📝 Սկսեք ընթերցել և մենք կտրամադրենք անհատականացված խորհուրդներ ձեր ընթերցման սովորությունների վերաբերյալ։")
+    
+    # Recent sessions detail
+    st.subheader("🕒 Վերջին Ընթերցումները")
     sessions = get_user_sessions(user['id'])
     
     if sessions:
-        # Convert to DataFrame for easier analysis
-        import pandas as pd
-        sessions_df = pd.DataFrame(sessions)
-        
-        # Basic statistics
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            total_sessions = len(sessions_df)
-            st.metric("📖 Ընդհանուր Ընթերցումներ", total_sessions)
-        
-        with col2:
-            total_pages = sessions_df['pages_read'].sum()
-            st.metric("📄 Ընդհանուր Էջեր", total_pages)
-        
-        with col3:
-            total_time = sessions_df['session_duration'].sum()
-            hours = total_time // 60
-            minutes = total_time % 60
-            st.metric("⏱️ Ընդհանուր Ժամանակ", f"{hours}ժ {minutes}ր")
-        
-        with col4:
-            avg_speed = total_pages / (total_time / 60) if total_time > 0 else 0
-            st.metric("🚀 Միջին Արագություն", f"{avg_speed:.1f} էջ/ժամ")
-        
-        # Recent sessions
-        st.subheader("🕒 Վերջին Ընթերցումները")
-        for session in sessions[:10]:
-            st.write(f"- **{session['book_title']}** - {session['pages_read']} էջ ({session['session_duration']} րոպե) - {session['created_at']}")
-    
+        for session in sessions[:10]:  # Show last 10 sessions
+            with st.container():
+                col1, col2, col3 = st.columns([3, 1, 1])
+                with col1:
+                    st.write(f"**{session['book_title']}**")
+                with col2:
+                    st.write(f"{session['pages_read']} էջ")
+                with col3:
+                    st.write(f"{session['session_duration']} րոպե")
+                st.markdown("---")
     else:
         st.info("📝 Դեռ չունեք ընթերցման տվյալներ։ Սկսեք ընթերցել և ավելացրեք ձեր առաջին ընթերցումը։")
 
