@@ -65,7 +65,9 @@ def verify_user(username, password):
 def get_current_user():
     return st.session_state.get('user')
 
+# ADD THIS MISSING FUNCTION
 def logout():
+    """Logout the current user"""
     st.session_state.user = None
     st.session_state.page = "login"
 
