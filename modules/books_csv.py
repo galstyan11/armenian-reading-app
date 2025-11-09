@@ -152,7 +152,6 @@ def show_all_books(books_df, user):
                             st.success("📊 Ընթերցման տվյալները պահպանված են!")
                             
                             # Update user's reading speed automatically
-                            from modules.data import update_reading_speed
                             update_reading_speed(user['id'])
                     else:
                         st.error("❌ Խնդրում եմ լրացրեք բոլոր դաշտերը ճիշտ")
