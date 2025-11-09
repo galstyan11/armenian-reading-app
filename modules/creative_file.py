@@ -1,7 +1,8 @@
 import streamlit as st
-from modules.data_file import (
+from modules.data import (
     add_creative_work, get_creative_works, 
-    add_creative_work_comment, get_creative_work_comments
+    add_creative_work_comment, get_creative_work_comments,
+    delete_creative_work  # ADD THIS IMPORT
 )
 
 def show_creative_works(user):
@@ -80,6 +81,46 @@ def show_creative_works(user):
                         st.write(f"**Հրապարակված է:**")
                         st.write(work['created_at'])
                         st.write(f"**Տեսանելիություն:** {'🌍 Հասարակական' if work['is_public'] else '🔒 Մասնավոր'}")
+                        
+                        # DELETE BUTTON - ADD THIS SECTION
+                        st.write("---")
+                        st.write("**⚙️ Կառավարում**")
+                        
+                        # Confirmation for delete
+                        delete_key = f"delete_confirm_{work['id']}_{idx}"
+                        if delete_key not in st.session_state:
+                            st.session_state[delete_key] = False
+                        
+                        if not st.session_state[delete_key]:
+                            if st.button("🗑️ Ջնջել Ստեղծագործությունը", key=f"delete_btn_{work['id']}_{idx}"):
+                                st.session_state[delete_key] = True
+                                st.rerun()
+                        else:
+                            st.warning("⚠️ Դուք պատրաստվում եք ջնջել այս ստեղծագործությունը:")
+                            st.write(f"**{work['title']}**")
+                            st.error("❌ Այս գործողությունը հնարավոր չէ հետարկել!")
+                            
+                            col_confirm, col_cancel = st.columns(2)
+                            with col_confirm:
+                                if st.button("✅ Այո, Ջնջել", key=f"confirm_delete_{work['id']}_{idx}", type="primary"):
+                                    success, message = delete_creative_work(work['id'], user['id'])
+                                    if success:
+                                        st.success(message)
+                                        # Clear the confirmation state
+                                        if delete_key in st.session_state:
+                                            del st.session_state[delete_key]
+                                        st.rerun()
+                                    else:
+                                        st.error(message)
+                                        if delete_key in st.session_state:
+                                            del st.session_state[delete_key]
+                                        st.rerun()
+                            
+                            with col_cancel:
+                                if st.button("❌ Չեղարկել", key=f"cancel_delete_{work['id']}_{idx}"):
+                                    if delete_key in st.session_state:
+                                        del st.session_state[delete_key]
+                                    st.rerun()
                     
                     # Show comments for this work
                     st.write("---")
