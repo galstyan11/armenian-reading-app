@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from modules.utils import check_link_availability, calculate_reading_plan, get_reading_time_recommendation, get_advanced_recommendations
-from modules.data_file import add_reading_session, add_book_comment, get_book_comments, update_reading_speed
+from modules.data_file import add_reading_session, add_book_comment, get_book_comments, calculate_reading_speed
 from datetime import datetime, timedelta
 
 @st.cache_data
