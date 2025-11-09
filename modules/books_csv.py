@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 from modules.utils import check_link_availability, calculate_reading_plan, get_reading_time_recommendation, get_advanced_recommendations
 from modules.data_file import add_reading_session, add_book_comment, get_book_comments
+from datetime import datetime, timedelta
 
 @st.cache_data
 def load_books():
@@ -92,28 +93,69 @@ def show_all_books(books_df, user):
                     st.warning("⚠️ Այս գրքի համար PDF հղում չկա")
                 
                 # Reading session tracking
+                # Updated Reading session tracking
                 st.write("---")
                 st.write("📖 Ընթերցման Հետևում")
-                pages_read = st.number_input(
-                    "Կարդացած էջեր",
-                    min_value=0,
-                    max_value=book['pages'],
-                    value=0,
-                    key=f"pages_{book['id']}_{idx}"
-                )
-                reading_time = st.number_input(
-                    "Ընթերցման ժամանակ (րոպե)",
-                    min_value=0,
-                    max_value=480,
-                    value=0,
-                    key=f"time_{book['id']}_{idx}"
-                )
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    pages_read = st.number_input(
+                        "Կարդացած էջեր",
+                        min_value=0,
+                        max_value=book['pages'],
+                        value=0,
+                        key=f"pages_{book['id']}_{idx}"
+                    )
+                
+                with col2:
+                    start_time = st.time_input(
+                        "Ընթերցման սկիզբ",
+                        value=None,
+                        key=f"start_{book['id']}_{idx}"
+                    )
+                
+                with col3:
+                    end_time = st.time_input(
+                        "Ընթերցման ավարտ", 
+                        value=None,
+                        key=f"end_{book['id']}_{idx}"
+                    )
+                
+                # Calculate duration automatically
+                duration_minutes = 0
+                if start_time and end_time:
+                    # Calculate time difference in minutes
+                    start_dt = datetime.combine(datetime.today(), start_time)
+                    end_dt = datetime.combine(datetime.today(), end_time)
+                    
+                    if end_dt < start_dt:
+                        # If end time is next day (e.g., started at 23:00, ended at 01:00)
+                        end_dt = end_dt + timedelta(days=1)
+                    
+                    duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
+                    
+                    # Display calculated duration
+                    if duration_minutes > 0:
+                        st.info(f"⏱️ Ընթերցման ժամանակ: **{duration_minutes} րոպե**")
                 
                 if st.button("💾 Պահպանել Ընթերցումը", key=f"save_{book['id']}_{idx}"):
-                    if pages_read > 0 and reading_time > 0:
-                        success = add_reading_session(user['id'], book['id'], pages_read, reading_time, book['title'])
+                    if pages_read > 0 and start_time and end_time and duration_minutes > 0:
+                        success = add_reading_session(
+                            user['id'], 
+                            book['id'], 
+                            pages_read, 
+                            duration_minutes, 
+                            book['title']
+                        )
                         if success:
-                            st.success("Տվյալները պահպանված են!")
+                            st.success("📊 Ընթերցման տվյալները պահպանված են!")
+                            
+                            # Update user's reading speed automatically
+                            from modules.data import update_reading_speed
+                            update_reading_speed(user['id'])
+                    else:
+                        st.error("❌ Խնդրում եմ լրացրեք բոլոր դաշտերը ճիշտ")
             
             with col2:
                 # Book metrics and info
