@@ -191,3 +191,23 @@ def delete_creative_work(work_id, user_id):
         return True, "✅ Ստեղծագործությունը հաջողությամբ ջնջված է"
     except Exception as e:
         return False, f"❌ Ջնջման սխալ: {str(e)}"
+
+def update_reading_speed(user_id):
+    """Update user's reading speed based on their reading history"""
+    try:
+        from modules.auth import load_users, save_users
+        
+        new_speed = calculate_reading_speed(user_id)
+        users = load_users()
+        
+        # Find user by ID (username)
+        for username, user_data in users.items():
+            if user_data.get('id') == user_id or username == user_id:
+                user_data['reading_speed'] = new_speed
+                break
+        
+        save_users(users)
+        return new_speed
+    except Exception as e:
+        print(f"Error updating reading speed: {e}")
+        return 2.0
