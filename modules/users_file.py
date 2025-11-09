@@ -1,9 +1,61 @@
 import streamlit as st
 import json
 import os
-from datetime import datetime
-from modules.data_file import get_user_sessions, add_reminder, get_user_reminder, check_reminder_time
+from datetime import datetime, timedelta
+from modules.data_file import get_user_sessions, add_reminder, get_user_reminder, check_reminder_time, calculate_reading_speed
 from modules.utils import calculate_reading_plan
+
+def get_reading_insights(user_id):
+    """
+    Generate reading insights based on user's reading statistics
+    """
+    sessions = get_user_sessions(user_id)
+    
+    # Calculate statistics
+    total_books = len(set(session['book_id'] for session in sessions))
+    total_pages = sum(session['pages_read'] for session in sessions)
+    total_minutes = sum(session['session_duration'] for session in sessions)
+    total_hours = round(total_minutes / 60, 1)
+    
+    # Calculate reading speed
+    reading_speed = calculate_reading_speed(user_id)
+    
+    # Calculate weekly pages (last 7 days)
+    one_week_ago = datetime.now() - timedelta(days=7)
+    weekly_pages = sum(
+        session['pages_read'] for session in sessions 
+        if datetime.fromisoformat(session['created_at'].replace('Z', '+00:00')) > one_week_ago
+    )
+    
+    # Generate insights
+    insights = []
+    
+    if total_pages > 0:
+        if reading_speed > 3.0:
+            insights.append("🚀 Դուք արագ ընթերցող եք։ Հիանալի է տեխնիկական և գիտական գրքերի համար։")
+        elif reading_speed < 1.5:
+            insights.append("📖 Դուք չափավոր տեմպերով եք կարդում։ Սա օպտիմալ է գրականության և բանաստեղծությունների համար։")
+        else:
+            insights.append("⚡ Ձեր ընթերցման տեմպը հավասարակշռված է։ Գերազանց է բոլոր ժանրերի համար։")
+        
+        if total_books >= 5:
+            insights.append("📚 Դուք արդեն կարդացել եք բազմաթիվ գրքեր։ Շարունակեք նույն տեմպերով։")
+        elif total_books == 0:
+            insights.append("📝 Սկսեք ավելացնել ձեր ընթերցումները՝ ձեր վիճակագրությունը տեսնելու համար։")
+        
+        if weekly_pages > 50:
+            insights.append("🔥 Անցած շաբաթը շատ արդյունավետ էր։ Շարունակեք պահպանել այս տեմպը։")
+        elif weekly_pages < 10 and len(sessions) > 0:
+            insights.append("💪 Փորձեք ավելացնել օրական ընթերցման ժամանակը։ Փոքր քայլերով էլ կարող եք մեծ արդյունքի հասնել։")
+    
+    return {
+        'total_books': total_books,
+        'total_pages': total_pages,
+        'total_hours': total_hours,
+        'reading_speed': reading_speed,
+        'weekly_pages': weekly_pages,
+        'insights': insights
+    }
 
 def show_statistics(user):
     st.subheader("📊 Իմ Ընթերցման Վիճակագրությունը")
@@ -45,7 +97,7 @@ def show_statistics(user):
     
     with col_week2:
         weekly_goal = 100  # 100 pages per week goal
-        progress = min(100, (insights_data['weekly_pages'] / weekly_goal) * 100)
+        progress = min(100, (insights_data['weekly_pages'] / weekly_goal) * 100) if weekly_goal > 0 else 0
         st.metric("🎯 Շաբաթական նպատակ", f"{progress:.1f}%")
     
     # AI Insights
@@ -62,7 +114,10 @@ def show_statistics(user):
     sessions = get_user_sessions(user['id'])
     
     if sessions:
-        for session in sessions[:10]:  # Show last 10 sessions
+        # Show last 10 sessions in reverse order (newest first)
+        recent_sessions = sorted(sessions, key=lambda x: x['created_at'], reverse=True)[:10]
+        
+        for session in recent_sessions:
             with st.container():
                 col1, col2, col3 = st.columns([3, 1, 1])
                 with col1:
@@ -222,7 +277,7 @@ def show_settings(user, books_df):
     if st.button("💾 Պահպանել Կարգավորումները"):
         try:
             # Load current users
-            from modules.auth_file import load_users, save_users
+            from modules.data_file import load_users, save_users
             users = load_users()
             
             if user['username'] in users:
@@ -246,25 +301,3 @@ def show_settings(user, books_df):
                 
         except Exception as e:
             st.error(f"❌ Սխալ կարգավորումները պահպանելիս: {e}")
-
-def get_reading_insights(user_id):
-    """
-    Generate reading insights based on user's reading statistics
-    """
-    insights = []
-    
-    # You'll need to calculate or retrieve these values from your database
-    # For now, using placeholder values - replace with actual calculations
-    total_pages = 0  # Replace with actual total pages calculation
-    reading_speed = 0  # Replace with actual reading speed calculation (pages per minute)
-    
-    # Generate insights based on reading speed
-    if total_pages > 0:
-        if reading_speed > 3.0:
-            insights.append("🚀 Դուք արագ ընթերցող եք։ Հիանալի է տեխնիկական և գիտական գրքերի համար։")
-        elif reading_speed < 1.5:
-            insights.append("📖 Դուք չափավոր տեմպերով եք կարդում։ Սա օպտիմալ է գրականության և բանաստեղծությունների համար։")
-        else:
-            insights.append("⚡ Ձեր ընթերցման տեմպը հավասարակշռված է։ Գերազանց է բոլոր ժանրերի համար։")
-    
-    return insights
