@@ -1,0 +1,23 @@
+#apiversion: v1
+
+services:
+  app:
+    build: .
+    container_name: app
+    ports:
+      - "8005:8005"
+    networks:
+      - reading-app-net
+
+  db:
+    image: mysql/mysql-server
+    container_name: db-for-reading-app
+    networks:
+      - reading-app-net
+
+networks:
+  reading-app-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.55.0.0/16
