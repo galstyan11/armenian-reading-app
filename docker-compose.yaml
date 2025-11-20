@@ -5,19 +5,34 @@ services:
     build: .
     container_name: app
     ports:
-      - "8005:8005"
+      - "8501:8501"
     networks:
       - reading-app-net
+    depends_on:
+      db:
+        condition: service_healthy
 
   db:
     image: mysql/mysql-server
     container_name: db-for-reading-app
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: reading_app
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppass
     networks:
       - reading-app-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 networks:
   reading-app-net:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.55.0.0/16
+        - subnet: 172.55.0.0/24
+
