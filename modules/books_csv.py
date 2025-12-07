@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 @st.cache_data
 def load_books():
     """Load books from GitHub CSV"""
-    url = "https://raw.githubusercontent.com/galstyan11/reading-app/main/reading_app_db.csv"
+    url = "https://raw.githubusercontent.com/galstyan11/armenian-reading-app/refs/heads/main/reading_app_db.csv"
     
     try:
         df = pd.read_csv(url, encoding='utf-8-sig')
