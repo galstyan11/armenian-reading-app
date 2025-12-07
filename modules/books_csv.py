@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 def load_books():
     """Load books from GitHub CSV"""
     url = "https://raw.githubusercontent.com/galstyan11/armenian-reading-app/refs/heads/main/reading_app_db.csv"
-    
+
     try:
         df = pd.read_csv(url, encoding='utf-8-sig')
         df.columns = df.columns.str.strip()
