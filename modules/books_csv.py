@@ -13,7 +13,7 @@ def load_books():
     try:
         df = pd.read_csv(url, encoding='utf-8-sig')
         df.columns = df.columns.str.strip()
-    
+        st.success(f"✅ Բեռնված է {len(df)} գիրք")
         return df
     except Exception as e:
         st.error(f"Error loading books: {e}")
