@@ -1,6 +1,9 @@
+# modules/data_file.py
 import json
 import os
 from datetime import datetime
+import streamlit as st
+from modules.auth_file import load_users, save_users  # Ավելացրել ենք import-ը
 
 def ensure_data_dir():
     """Ensure data directory exists"""
@@ -14,16 +17,19 @@ def load_data(filename, default=[]):
         if os.path.exists(filepath):
             with open(filepath, 'r', encoding='utf-8') as f:
                 return json.load(f)
-    except:
-        pass
+    except Exception as e:
+        print(f"Error loading {filename}: {e}")
     return default
 
 def save_data(filename, data):
     """Save data to JSON file"""
     ensure_data_dir()
     filepath = f'data/{filename}.json'
-    with open(filepath, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving {filename}: {e}")
 
 # Reading Sessions
 def add_reading_session(user_id, book_id, pages_read, session_duration, book_title):
@@ -31,13 +37,13 @@ def add_reading_session(user_id, book_id, pages_read, session_duration, book_tit
     sessions = load_data('reading_sessions', [])
     
     session = {
-        'id': len(sessions) + 1,
+        'id': len(sessions) + 1 if sessions else 1,
         'user_id': user_id,
         'book_id': book_id,
         'book_title': book_title,
         'pages_read': pages_read,
         'session_duration': session_duration,
-        'created_at': str(datetime.now())
+        'created_at': datetime.now().isoformat()
     }
     
     sessions.append(session)
@@ -47,8 +53,7 @@ def add_reading_session(user_id, book_id, pages_read, session_duration, book_tit
 def get_user_sessions(user_id):
     """Get user's reading sessions"""
     sessions = load_data('reading_sessions', [])
-    user_sessions = [s for s in sessions if s['user_id'] == user_id]
-    return user_sessions
+    return [s for s in sessions if s['user_id'] == user_id]
 
 # Book Comments
 def add_book_comment(user_id, book_id, comment_text, rating, username):
@@ -56,13 +61,13 @@ def add_book_comment(user_id, book_id, comment_text, rating, username):
     comments = load_data('book_comments', [])
     
     comment = {
-        'id': len(comments) + 1,
+        'id': len(comments) + 1 if comments else 1,
         'user_id': user_id,
         'username': username,
         'book_id': book_id,
         'comment_text': comment_text,
         'rating': rating,
-        'created_at': str(datetime.now())
+        'created_at': datetime.now().isoformat()
     }
     
     comments.append(comment)
@@ -72,8 +77,7 @@ def add_book_comment(user_id, book_id, comment_text, rating, username):
 def get_book_comments(book_id):
     """Get comments for a book"""
     comments = load_data('book_comments', [])
-    book_comments = [c for c in comments if c['book_id'] == book_id]
-    return book_comments
+    return [c for c in comments if c['book_id'] == book_id]
 
 # Creative Works
 def add_creative_work(user_id, title, content_type, content, genre, description, is_public, username):
@@ -81,28 +85,31 @@ def add_creative_work(user_id, title, content_type, content, genre, description,
     works = load_data('creative_works', [])
     
     work = {
-        'id': len(works) + 1,
+        'id': len(works) + 1 if works else 1,
         'user_id': user_id,
         'username': username,
         'title': title,
         'content_type': content_type,
         'content': content,
-        'genre': genre,
+        'genre': genre or "Ընդհանուր",
         'description': description,
         'is_public': is_public,
-        'created_at': str(datetime.now())
+        'created_at': datetime.now().isoformat()
     }
     
     works.append(work)
     save_data('creative_works', works)
     return work['id']
 
-def get_creative_works(user_id=None, public_only=True):
-    """Get creative works"""
+def get_creative_works(user_id=None, public_only=False, viewer_id=None):
+    """Get creative works with filtering"""
     works = load_data('creative_works', [])
     
-    if user_id:
-        return [w for w in works if w['user_id'] == user_id]
+    if user_id is not None:
+        filtered = [w for w in works if w['user_id'] == user_id]
+        if public_only and viewer_id is not None and user_id != viewer_id:
+            filtered = [w for w in filtered if w['is_public']]
+        return filtered
     elif public_only:
         return [w for w in works if w['is_public']]
     else:
@@ -113,12 +120,12 @@ def add_creative_work_comment(creative_work_id, user_id, comment_text, username)
     comments = load_data('creative_work_comments', [])
     
     comment = {
-        'id': len(comments) + 1,
+        'id': len(comments) + 1 if comments else 1,
         'creative_work_id': creative_work_id,
         'user_id': user_id,
         'username': username,
         'comment_text': comment_text,
-        'created_at': str(datetime.now())
+        'created_at': datetime.now().isoformat()
     }
     
     comments.append(comment)
@@ -128,24 +135,23 @@ def add_creative_work_comment(creative_work_id, user_id, comment_text, username)
 def get_creative_work_comments(creative_work_id):
     """Get comments for creative work"""
     comments = load_data('creative_work_comments', [])
-    work_comments = [c for c in comments if c['creative_work_id'] == creative_work_id]
-    return work_comments
+    return [c for c in comments if c['creative_work_id'] == creative_work_id]
 
 # Reminders
 def add_reminder(user_id, reminder_time, days_of_week, is_active=True):
-    """Add reading reminder"""
+    """Add or update reading reminder"""
     reminders = load_data('reading_reminders', [])
     
-    # Remove existing reminders for this user
+    # Remove old reminder for this user
     reminders = [r for r in reminders if r['user_id'] != user_id]
     
     reminder = {
-        'id': len(reminders) + 1,
+        'id': len(reminders) + 1 if reminders else 1,
         'user_id': user_id,
         'reminder_time': reminder_time,
         'days_of_week': days_of_week,
         'is_active': is_active,
-        'created_at': str(datetime.now())
+        'created_at': datetime.now().isoformat()
     }
     
     reminders.append(reminder)
@@ -153,39 +159,30 @@ def add_reminder(user_id, reminder_time, days_of_week, is_active=True):
     return True
 
 def get_user_reminder(user_id):
-    """Get user's reminder"""
+    """Get user's current reminder"""
     reminders = load_data('reading_reminders', [])
     user_reminders = [r for r in reminders if r['user_id'] == user_id]
     return user_reminders[0] if user_reminders else None
 
 def check_reminder_time(user_id):
-    """Check if it's reminder time (simplified version)"""
-    # This is a simplified version - in a real app you'd check current time
-    # For now, we'll just return False to avoid constant notifications
+    """Simplified check - always returns False for demo"""
     return False
 
 def delete_creative_work(work_id, user_id):
-    """Delete a creative work (only if user owns it)"""
+    """Delete creative work if owned by user"""
     try:
         works = load_data('creative_works', [])
         comments = load_data('creative_work_comments', [])
         
-        # Find the work and verify ownership
-        work_to_delete = None
-        for work in works:
-            if work['id'] == work_id and work['user_id'] == user_id:
-                work_to_delete = work
-                break
+        work_to_delete = next((w for w in works if w['id'] == work_id and w['user_id'] == user_id), None)
         
         if not work_to_delete:
             return False, "❌ Միայն կարող եք ջնջել ձեր սեփական ստեղծագործությունները"
         
-        # Remove the work
-        works = [work for work in works if work['id'] != work_id]
+        works = [w for w in works if w['id'] != work_id]
         save_data('creative_works', works)
         
-        # Remove associated comments
-        comments = [comment for comment in comments if comment['creative_work_id'] != work_id]
+        comments = [c for c in comments if c['creative_work_id'] != work_id]
         save_data('creative_work_comments', comments)
         
         return True, "✅ Ստեղծագործությունը հաջողությամբ ջնջված է"
@@ -193,41 +190,33 @@ def delete_creative_work(work_id, user_id):
         return False, f"❌ Ջնջման սխալ: {str(e)}"
 
 def calculate_reading_speed(user_id):
-    """Calculate user's reading speed based on their reading history (pages per minute)"""
+    """Calculate reading speed from sessions (pages per minute)"""
     sessions = get_user_sessions(user_id)
     
     if not sessions:
-        return 2.0  # Default reading speed (pages per minute)
+        return None
     
-    total_pages = 0
-    total_minutes = 0
+    total_pages = sum(s['pages_read'] for s in sessions)
+    total_minutes = sum(s['session_duration'] for s in sessions)
     
-    for session in sessions:
-        total_pages += session['pages_read']
-        total_minutes += session['session_duration']
+    if total_minutes <= 0:
+        return None
+
     
-    if total_minutes > 0:
-        reading_speed = total_pages / total_minutes  # pages per minute
-        # Convert to pages per minute (ensure reasonable range)
-        reading_speed = max(0.5, min(5.0, reading_speed))
-        return round(reading_speed, 1)
-    else:
-        return 2.0
-        
-# In data_file.py - make sure this function exists:
+    speed = total_pages / total_minutes
+    return round(max(0.5, min(5.0, speed)), 1)
+
 def update_reading_speed(user_id):
-    """Update user's reading speed based on reading history"""
+    """Update user's reading speed in users.json and session"""
     try:
         new_speed = calculate_reading_speed(user_id)
-        
-        # Load users and update the reading speed
         users = load_users()
+        
         if user_id in users:
             users[user_id]['reading_speed'] = new_speed
             save_users(users)
             
-            # Also update session state if this is the current user
-            if 'user' in st.session_state and st.session_state.user['id'] == user_id:
+            if st.session_state.get('user') and st.session_state.user['id'] == user_id:
                 st.session_state.user['reading_speed'] = new_speed
                 
             return True

@@ -2,10 +2,165 @@
   "Միլենա Գալստյան": {
     "email": "j",
     "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "reading_speed": 0.5,
+    "daily_reading_time": 30,
+    "preferred_genres": [
+      "Ֆինանսաբանկային",
+      "Գիտական"
+    ],
+    "preferred_language": "Ռուսերեն",
+    "created_at": "2025-12-07 19:23:06.790305",
+    "age": 16,
+    "profession": null,
+    "bio": null
+  },
+  "մ": {
+    "email": "մ",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "reading_speed": 2,
+    "daily_reading_time": 30,
+    "preferred_genres": [
+      "Դետեկտիվ"
+    ],
+    "preferred_language": "Հայերեն",
+    "age": 21,
+    "profession": "հեղինակ",
+    "bio": "բարև",
+    "created_at": "2026-01-06 13:41:39.247894"
+  },
+  "Միլենա ": {
+    "email": "m",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
     "reading_speed": 2,
     "daily_reading_time": 30,
     "preferred_genres": [],
     "preferred_language": "Հայերեն",
-    "created_at": "2025-12-07 19:23:06.790305"
+    "age": 14,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-06 15:44:18.738331"
+  },
+  "m": {
+    "email": "mm",
+    "password": "87eee136f73cd0a771068277f170bd4ad82d929fd17507e3939a5182186d40c1",
+    "reading_speed": 2,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_language": "Հայերեն",
+    "age": 15,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-06 15:47:28.211964"
+  },
+  "Milena Galstyan": {
+    "email": "mmm",
+    "password": "87eee136f73cd0a771068277f170bd4ad82d929fd17507e3939a5182186d40c1",
+    "reading_speed": 2,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_language": "Հայերեն",
+    "age": 14,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-06T17:02:27.421621"
+  },
+  "guest": {
+    "email": "guest",
+    "password": "84983c60f7daadc1cb8698621f802c0d9f9a3c3c295c810748fb048115c186ec",
+    "reading_speed": 2,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_language": "Հայերեն",
+    "age": 15,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-06T18:29:20.451231"
+  },
+  "mmmm": {
+    "email": "mmmm",
+    "password": "87eee136f73cd0a771068277f170bd4ad82d929fd17507e3939a5182186d40c1",
+    "reading_speed": 2,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_language": "Հայերեն",
+    "age": 15,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-06T18:58:47.727471"
+  },
+  "Milena": {
+    "email": "mil",
+    "password": "edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9",
+    "reading_speed": 1,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_language": "Հայերեն",
+    "age": 16,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-06T22:44:30.201431"
+  },
+  "Galstyan": {
+    "email": "milena",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "reading_speed": 0.5,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_language": "Հայերեն",
+    "age": 16,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-06T22:49:35.917420"
+  },
+  "1": {
+    "email": "1",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "reading_speed": 2.0,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_language": "Հայերեն",
+    "age": null,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-07T14:15:06.141859"
+  },
+  "hey": {
+    "email": "hey",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "reading_speed": 1.5,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_language": "Հայերեն",
+    "age": null,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-09T00:06:17.526615"
+  },
+  "lili": {
+    "email": "lili",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "reading_speed": 0.5,
+    "daily_reading_time": 30,
+    "preferred_genres": [
+      "Դետեկտիվ",
+      "Արկածային"
+    ],
+    "preferred_language": "Հայերեն",
+    "age": 15,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-09T13:08:07.864570"
+  },
+  "lil": {
+    "email": "1111",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "reading_speed": null,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_language": "Հայերեն",
+    "age": null,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-01-09T13:45:53.626957"
   }
 }

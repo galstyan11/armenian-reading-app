@@ -1,36 +1,40 @@
+# modules/users_file.py
 import streamlit as st
-import json
-import os
-from datetime import datetime, timedelta
-from modules.data_file import get_user_sessions, add_reminder, get_user_reminder, check_reminder_time, calculate_reading_speed
+import pandas as pd
+from datetime import datetime as dt, timedelta
+from modules.data_file import (
+    get_user_sessions, add_reminder, get_user_reminder, check_reminder_time,
+    calculate_reading_speed, load_users, get_creative_works
+)
 from modules.utils import calculate_reading_plan
+from modules.custom_alerts import custom_success, custom_info, custom_warning, custom_empty
+from modules.auth_file import save_users
+from modules.books_csv import load_books  # Ավելացրել ենք import-ը
+
+
+@st.cache_data(ttl=3600)  # Քեշ 1 ժամով
+def _load_books_cached():
+    return load_books()
+
 
 def get_reading_insights(user_id):
-    """
-    Generate reading insights based on user's reading statistics
-    """
     sessions = get_user_sessions(user_id)
     
-    # Calculate statistics
     total_books = len(set(session['book_id'] for session in sessions))
     total_pages = sum(session['pages_read'] for session in sessions)
     total_minutes = sum(session['session_duration'] for session in sessions)
     total_hours = round(total_minutes / 60, 1)
     
-    # Calculate reading speed
     reading_speed = calculate_reading_speed(user_id)
     
-    # Calculate weekly pages (last 7 days)
-    one_week_ago = datetime.now() - timedelta(days=7)
+    one_week_ago = dt.now() - timedelta(days=7)
     weekly_pages = sum(
         session['pages_read'] for session in sessions 
-        if datetime.fromisoformat(session['created_at'].replace('Z', '+00:00')) > one_week_ago
+        if dt.fromisoformat(session['created_at'].replace('Z', '+00:00')) > one_week_ago
     )
     
-    # Generate insights
     insights = []
-    
-    if total_pages > 0:
+    if total_pages > 0 and reading_speed is not None:
         if reading_speed > 3.0:
             insights.append("🚀 Դուք արագ ընթերցող եք։ Հիանալի է տեխնիկական և գիտական գրքերի համար։")
         elif reading_speed < 1.5:
@@ -57,118 +61,59 @@ def get_reading_insights(user_id):
         'insights': insights
     }
 
+
 def show_statistics(user):
     st.subheader("📊 Իմ Ընթերցման Վիճակագրությունը")
     
-    # Get AI-powered insights
     insights_data = get_reading_insights(user['id'])
     
-    # Main statistics cards
+    sessions = get_user_sessions(user['id'])
+    unique_book_ids = set(session['book_id'] for session in sessions)
+    total_books_read = len(unique_book_ids)
+    
     col1, col2, col3, col4 = st.columns(4)
-    
     with col1:
-        st.metric("📖 Ընդհանուր Գրքեր", insights_data['total_books'])
-    
+        st.metric("📚 Կարդացած Գրքեր", total_books_read)
     with col2:
         st.metric("📄 Ընդհանուր Էջեր", insights_data['total_pages'])
-    
     with col3:
         st.metric("⏱️ Ընդհանուր Ժամանակ", f"{insights_data['total_hours']} ժամ")
-    
     with col4:
-        # Show reading speed in pages per minute
-        reading_speed_ppm = insights_data['reading_speed']
-        st.metric("🚀 Ընթերցման Արագություն", f"{reading_speed_ppm} էջ/րոպե")
-        
-        # Show reading level based on speed
-        if reading_speed_ppm < 1.5:
-            st.caption("📖 Դանդաղ ընթերցող")
-        elif reading_speed_ppm < 3.0:
-            st.caption("⚡ Միջին ընթերցող")
+        speed = insights_data['reading_speed']
+        if speed is not None and speed > 0:
+            if speed >= 2.0:
+                label = "🚀 Շատ արագ ընթերցող"
+            elif speed >= 1.5:
+                label = "⚡ Արագ ընթերցող"
+            elif speed >= 0.8:
+                label = "📖 Միջին ընթերցող"
+            else:
+                label = "🐢 Հանգիստ տեմպ"
+            st.metric("Իրական Արագություն", f"{speed:.1f} էջ/րոպե")
+            st.success(f"**{label}** — հաշվված է Ձեր սեսիաներից")
         else:
-            st.caption("🚀 Արագ ընթերցող")
-    
-    # Weekly progress
-    st.subheader("📅 Շաբաթական Առաջընթաց")
-    col_week1, col_week2 = st.columns(2)
-    
-    with col_week1:
-        st.metric("📖 Անցած շաբաթվա էջեր", insights_data['weekly_pages'])
-    
-    with col_week2:
-        weekly_goal = 100  # 100 pages per week goal
-        progress = min(100, (insights_data['weekly_pages'] / weekly_goal) * 100) if weekly_goal > 0 else 0
-        st.metric("🎯 Շաբաթական նպատակ", f"{progress:.1f}%")
-    
-    # AI Insights
-    st.subheader("🤖 Անհատականացված Խորհուրդներ")
-    
-    if insights_data['insights']:
-        for insight in insights_data['insights']:
-            st.info(insight)
-    else:
-        st.info("📝 Սկսեք ընթերցել և մենք կտրամադրենք անհատականացված խորհուրդներ ձեր ընթերցման սովորությունների վերաբերյալ։")
-    
-    # Recent sessions detail
-    st.subheader("🕒 Վերջին Ընթերցումները")
-    sessions = get_user_sessions(user['id'])
-    
-    if sessions:
-        # Show last 10 sessions in reverse order (newest first)
-        recent_sessions = sorted(sessions, key=lambda x: x['created_at'], reverse=True)[:10]
-        
-        for session in recent_sessions:
-            with st.container():
-                col1, col2, col3 = st.columns([3, 1, 1])
-                with col1:
-                    st.write(f"**{session['book_title']}**")
-                with col2:
-                    st.write(f"{session['pages_read']} էջ")
-                with col3:
-                    st.write(f"{session['session_duration']} րոպե")
-                st.markdown("---")
-    else:
-        st.info("📝 Դեռ չունեք ընթերցման տվյալներ։ Սկսեք ընթերցել և ավելացրեք ձեր առաջին ընթերցումը։")
+            st.metric("Իրական Արագություն", "Դեռ չի հաշվվել")
+            custom_info("📝 Ավելացրեք առաջին ընթերցման սեսիան՝ Ձեր իրական արագությունը տեսնելու համար")
+
 
 def show_reminders(user):
     st.subheader("⏰ Ընթերցման Հիշեցումներ")
     
-    st.info("""
-    **📖 Ընթերցման հիշեցումներ** - Սահմանեք ձեր ամենօրյա ընթերցման ժամանակը, և մենք կհիշեցնենք ձեզ 5 րոպե առաջ։
-    """)
+    custom_info("**📖 Ընթերցման հիշեցումներ** - Սահմանեք ձեր ամենօրյա ընթերցման ժամանակը, և մենք կհիշեցնենք ձեզ 5 րոպե առաջ։")
     
-    # Get existing reminder
     existing_reminder = get_user_reminder(user['id'])
     
     with st.form("reminder_form"):
         col1, col2 = st.columns(2)
-        
         with col1:
             default_time = existing_reminder['reminder_time'] if existing_reminder else "20:00"
-            reminder_time = st.text_input(
-                "🕐 Ընթերցման ժամանակ",
-                value=default_time,
-                help="Ընտրեք ժամանակ, երբ ցանկանում եք ընթերցել (օրինակ՝ 20:00)",
-                placeholder="20:00"
-            )
-        
+            reminder_time = st.text_input("🕐 Ընթերցման ժամանակ", value=default_time, placeholder="20:00")
         with col2:
-            # Days of week selection
             days_options = ["Երկուշաբթի", "Երեքշաբթի", "Չորեքշաբթի", "Հինգշաբթի", "Ուրբաթ", "Շաբաթ", "Կիրակի"]
             default_days = existing_reminder['days_of_week'] if existing_reminder else days_options
-            selected_days = st.multiselect(
-                "📅 Օրեր",
-                options=days_options,
-                default=default_days,
-                help="Ընտրեք օրերը, երբ ցանկանում եք ստանալ հիշեցումներ"
-            )
+            selected_days = st.multiselect("📅 Օրեր", options=days_options, default=default_days)
         
-        # Active status
-        is_active = st.checkbox(
-            "Ակտիվացնել հիշեցումները",
-            value=existing_reminder['is_active'] if existing_reminder else True,
-            help="Հիշեցումները կաշխատեն միայն այն դեպքում, եթե ակտիվացված են"
-        )
+        is_active = st.checkbox("Ակտիվացնել հիշեցումները", value=existing_reminder['is_active'] if existing_reminder else True)
         
         submitted = st.form_submit_button("💾 Պահպանել Հիշեցումը")
         
@@ -180,124 +125,260 @@ def show_reminders(user):
             else:
                 success = add_reminder(user['id'], reminder_time, selected_days, is_active)
                 if success:
-                    st.success("✅ Հիշեցումը հաջողությամբ պահպանված է!")
-                    
-                    # Show reminder summary
+                    custom_success("✅ Հիշեցումը հաջողությամբ պահպանված է!")
                     days_str = ", ".join(selected_days)
-                    st.info(f"""
+                    custom_info(f"""
                     **📋 Ձեր հիշեցման կարգավորումները:**
                     - **⏰ Ժամանակ:** {reminder_time}
                     - **📅 Օրեր:** {days_str}
                     - **🔔 Կարգավիճակ:** {'Ակտիվ' if is_active else 'Անջատված'}
                     - **⏱️ Հիշեցում:** 5 րոպե առաջ
                     """)
-                    
                     if is_active:
                         st.balloons()
                 else:
                     st.error("❌ Չհաջողվեց պահպանել հիշեցումը")
     
-    # Current reminder status
     st.subheader("🔔 Ընթացիկ Հիշեցում")
     current_reminder = get_user_reminder(user['id'])
-    
     if current_reminder and current_reminder['is_active']:
         days_str = ", ".join(current_reminder['days_of_week'])
-        st.success(f"""
+        custom_success(f"""
         **✅ Ակտիվ հիշեցում**
         - **⏰ Ժամանակ:** {current_reminder['reminder_time']}
         - **📅 Օրեր:** {days_str}
         - **⏱️ Հիշեցում:** 5 րոպե առաջ
         """)
-        
-        # Check if reminder should be shown now
         if check_reminder_time(user['id']):
-            st.warning("""
-            **🔔 Ընթերցման Ժամանակն է!**
-            
-            Մոտենում է ձեր ընթերցման ժամանակը: 
-            Պատրաստվեք ընթերցել և վայելել ձեր ընտրված գիրքը:
-            """)
+            st.warning("**🔔 Ընթերցման Ժամանակն է!** Մոտենում է ձեր ընթերցման ժամանակը:")
             st.balloons()
     elif current_reminder and not current_reminder['is_active']:
-        st.warning("""
-        **🔕 Հիշեցումները անջատված են**
-        
-        Ձեր հիշեցումը պահպանված է, բայց այս պահին անջատված է:
-        Ակտիվացրեք այն վերևի ձևում, եթե ցանկանում եք ստանալ հիշեցումներ:
-        """)
+        st.warning("**🔕 Հիշեցումները անջատված են**")
     else:
-        st.info("""
-        **ℹ️ Դեռ չունեք ակտիվ հիշեցումներ**
-        
-        Սահմանեք ձեր առաջին հիշեցումը վերևի ձևում՝ 
-        կանոնավոր ընթերցման սովորություն ձևավորելու համար:
-        """)
+        custom_info("**Դեռ չունեք ակտիվ հիշեցումներ**")
+
 
 def show_settings(user, books_df):
     st.subheader("⚙️ Օգտատիրոջ Կարգավորումներ")
     
     st.write(f"**Օգտանուն:** {user['username']}")
     st.write(f"**Էլ. Փոստ:** {user['email']}")
-    st.write(f"**Գրանցման ամսաթիվ:** {user.get('created_at', 'Անհայտ')}")
     
-    # Update preferences
+    created_at_str = user.get('created_at', None)
+    if created_at_str:
+        try:
+            full_dt = dt.fromisoformat(created_at_str.replace('Z', '+00:00'))
+            formatted_date = full_dt.strftime("%Y-%m-%d %H:%M")
+            st.write(f"**Գրանցման ամսաթիվ:** {formatted_date}")
+        except Exception:
+            st.write(f"**Գրանցման ամսաթիվ:** {created_at_str}")
+    else:
+        st.write("**Գրանցման ամսաթիվ:** Անհայտ")
+    
     st.subheader("🔄 Թարմացնել Նախապատվությունները")
     
-    new_reading_speed = st.slider(
-        "Ընթերցման Արագություն (էջ/րոպե)",
-        min_value=1,
-        max_value=5,
-        value=user['reading_speed']
-    )
+    if user['reading_speed'] is not None:
+        st.write(f"**Ընթերցման Արագություն:** {user['reading_speed']:.1f} էջ/րոպե")
+        st.caption("Այս արժեքն ավտոմատ հաշվվում է Ձեր ընթերցումների հիման վրա։")
+    else:
+        st.write("**Ընթերցման Արագություն:** Դեռ չի հաշվվել")
+        custom_info("📝 Սկսեք ընթերցել իրական արագությունը տեսնելու համար")
     
-    new_daily_time = st.slider(
-        "Օրական Ընթերցման Ժամանակ (րոպե)",
-        min_value=15,
-        max_value=180,
-        value=user['daily_reading_time']
-    )
+    new_daily_time = st.slider("Օրական Ընթերցման Ժամանակ (րոպե)", 15, 180, user['daily_reading_time'])
     
     available_genres = books_df['genre'].unique().tolist() if not books_df.empty else []
     current_genres = user['preferred_genres'] if user['preferred_genres'] else []
-    new_preferred_genres = st.multiselect(
-        "Նախընտրելի Ժանրեր",
-        options=available_genres,
-        default=current_genres
-    )
+    new_preferred_genres = st.multiselect("Նախընտրելի Ժանրեր", available_genres, default=current_genres,
+                                          placeholder="Կարող եք ընտրել մի քանիսը", key="settings_genres")
     
-    # Language preference
     current_language = user.get('preferred_language', 'Հայերեն')
-    new_preferred_language = st.selectbox(
-        "Նախընտրելի Լեզու",
-        ["Հայերեն", "Ռուսերեն", "Անգլերեն"],
-        index=["Հայերեն", "Ռուսերեն", "Անգլերեն"].index(current_language) if current_language in ["Հայերեն", "Ռուսերեն", "Անգլերեն"] else 0
-    )
+    new_preferred_language = st.selectbox("Նախընտրելի Լեզու", ["Հայերեն", "Ռուսերեն", "Անգլերեն"],
+                                          index=["Հայերեն", "Ռուսերեն", "Անգլերեն"].index(current_language))
+    
+    new_age = st.number_input("Տարիք", min_value=13, max_value=120,
+                              value=user.get('age') if user.get('age') is not None else 18, step=1)
+    new_profession = st.text_input("Մասնագիտություն", value=user.get('profession', ''))
+    new_bio = st.text_area("Իմ մասին", value=user.get('bio', ''), height=100)
     
     if st.button("💾 Պահպանել Կարգավորումները"):
         try:
-            # Load current users
-            from modules.data_file import load_users, save_users
             users = load_users()
-            
             if user['username'] in users:
-                # Update user preferences
-                users[user['username']]['reading_speed'] = new_reading_speed
                 users[user['username']]['daily_reading_time'] = new_daily_time
                 users[user['username']]['preferred_genres'] = new_preferred_genres
                 users[user['username']]['preferred_language'] = new_preferred_language
+                users[user['username']]['age'] = new_age if new_age != 18 else None
+                users[user['username']]['profession'] = new_profession.strip() or None
+                users[user['username']]['bio'] = new_bio.strip() or None
                 
                 save_users(users)
                 
-                # Update session state
                 st.session_state.user = users[user['username']].copy()
                 st.session_state.user['username'] = user['username']
                 st.session_state.user['id'] = user['username']
                 
-                st.success("✅ Կարգավորումները պահպանված են!")
+                custom_success("✅ Կարգավորումները պահպանված են!")
                 st.rerun()
-            else:
-                st.error("❌ Օգտատերը չի գտնվել")
-                
         except Exception as e:
             st.error(f"❌ Սխալ կարգավորումները պահպանելիս: {e}")
+
+
+def show_read_books_section(viewed_user):
+    """Կարդացած գրքերի բաժինը — օգտագործվում է և՛ սեփական, և՛ ուրիշի պրոֆիլում"""
+    st.subheader("📚 Կարդացած Գրքեր")
+
+    user_sessions = get_user_sessions(viewed_user['id'])
+    if not user_sessions:
+        custom_empty("Դեռ չկան գրանցված ընթերցումներ։")
+        return
+
+    # Հավաքել ընդհանուր կարդացած էջերը յուրաքանչյուր գրքի համար
+    book_progress = {}
+    for session in user_sessions:
+        book_id = session['book_id']
+        if book_id not in book_progress:
+            book_progress[book_id] = {
+                'title': session['book_title'],
+                'pages_read': 0
+            }
+        book_progress[book_id]['pages_read'] += session['pages_read']
+
+    books_df = _load_books_cached()
+    read_books_list = []
+
+    for book_id, progress in book_progress.items():
+        book_row = books_df[books_df['id'] == book_id]
+        if not book_row.empty:
+            book = book_row.iloc[0]
+            total_pages = int(book['pages']) if pd.notna(book['pages']) else 0
+            progress.update({
+                'total_pages': total_pages,
+                'author': book.get('author', 'Անհայտ'),
+                'genre': book.get('genre', ''),
+                'percentage': (progress['pages_read'] / total_pages * 100) if total_pages > 0 else 0
+            })
+            read_books_list.append(progress)
+
+    if not read_books_list:
+        custom_empty("Գրքերի մասին տեղեկություն չի գտնվել։")
+        return
+
+    # Տեսակավորել՝ ամենաշատ կարդացածները վերևում
+    read_books_list.sort(key=lambda x: x['pages_read'], reverse=True)
+
+    for book in read_books_list:
+        with st.container(border=True):
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write(f"**{book['title']}** — {book['author']}")
+                if book['genre']:
+                    st.caption(f"Ժանր: {book['genre']}")
+            with col2:
+                if book['total_pages'] > 0:
+                    percentage = min(100, book['percentage'])
+                    st.progress(percentage / 100)
+                    st.caption(f"{book['pages_read']}/{book['total_pages']} էջ ({percentage:.0f}%)")
+                else:
+                    st.caption(f"{book['pages_read']} էջ")
+            st.markdown("")
+
+def show_full_profile(current_user, books_df):
+    viewed_username = st.session_state.get('viewed_profile', None)
+    
+    if viewed_username and viewed_username != current_user['username']:
+        # Ուրիշի պրոֆիլ — առանց tab-երի
+        from modules.auth_file import load_users
+        users = load_users()
+        if viewed_username not in users:
+            st.error("❌ Օգտատերը չի գտնվել")
+            return
+        viewed_user = users[viewed_username]
+        viewed_user['id'] = viewed_username
+        viewed_user['username'] = viewed_username
+        st.subheader(f"👤 {viewed_username}-ի Պրոֆիլը")
+
+        # Ավատար և տվյալներ
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            initial = viewed_user['username'][0].upper()
+            st.markdown(f"""
+            <div style="background-color: #F5E8DC; border-radius: 50%; width: 150px; height: 150px; 
+                 display: flex; align-items: center; justify-content: center; font-size: 70px; 
+                 color: #BF6B3B; font-weight: bold;">
+                {initial}
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            st.write(f"**Օգտանուն:** {viewed_user['username']}")
+            if viewed_user.get('age'):
+                st.write(f"**Տարիք:** {viewed_user['age']}")
+            if viewed_user.get('profession'):
+                st.write(f"**Մասնագիտություն:** {viewed_user['profession']}")
+            if viewed_user.get('bio'):
+                st.write(f"**{viewed_user['username']}-ի մասին:** {viewed_user['bio']}")
+
+            created_at = viewed_user.get('created_at', 'Անհայտ')[:10] if viewed_user.get('created_at') else 'Անհայտ'
+            st.write(f"**Գրանցվել է:** {created_at}")
+
+        st.markdown("---")
+        show_read_books_section(viewed_user)
+
+        if st.button("🔙 Վերադառնալ իմ պրոֆիլին"):
+            if 'viewed_profile' in st.session_state:
+                del st.session_state.viewed_profile
+            st.rerun()
+        return
+
+    # === ՍԵՓԱԿԱՆ ՊՐՈՖԻԼ ===
+    viewed_user = current_user
+    st.subheader("👤 Իմ Պրոֆիլը")
+
+    # TAB-ԵՐԸ ՎԵՐԵՎՈՒՄ
+    profile_tabs = st.tabs(["📋 Տեղեկություններ", "📊 Վիճակագրություն", "⚙️ Կարգավորումներ", "⏰ Հիշեցումներ"])
+
+    with profile_tabs[0]:  # Տեղեկություններ
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            initial = viewed_user['username'][0].upper()
+            st.markdown(f"""
+            <div style="background-color: #F5E8DC; border-radius: 50%; width: 150px; height: 150px; 
+                 display: flex; align-items: center; justify-content: center; font-size: 70px; 
+                 color: #BF6B3B; font-weight: bold;">
+                {initial}
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col2:
+            st.write(f"**Օգտանուն:** {viewed_user['username']}")
+            if viewed_user.get('age'):
+                st.write(f"**Տարիք:** {viewed_user['age']}")
+            if viewed_user.get('profession'):
+                st.write(f"**Մասնագիտություն:** {viewed_user['profession']}")
+            if viewed_user.get('bio'):
+                st.write(f"**Իմ մասին:** {viewed_user['bio']}")
+
+            created_at = viewed_user.get('created_at', 'Անհայտ')[:10] if viewed_user.get('created_at') else 'Անհայտ'
+            st.write(f"**Գրանցվել է:** {created_at}")
+
+            st.markdown("**Ընթերցման Նախապատվություններ**")
+            speed_display = f"{viewed_user['reading_speed']:.1f} էջ/րոպե" if viewed_user.get('reading_speed') is not None else "Դեռ չի հաշվվել"
+            st.write(f"• Արագություն: {speed_display}")
+            st.write(f"• Օրական ժամանակ: {viewed_user['daily_reading_time']} րոպե")
+            st.write(f"• Լեզու: {viewed_user.get('preferred_language', 'Հայերեն')}")
+            if viewed_user.get('preferred_genres'):
+                st.write(f"• Ժանրեր: {', '.join(viewed_user['preferred_genres'])}")
+
+        st.markdown("---")
+        show_read_books_section(viewed_user)
+    
+    with profile_tabs[1]:
+        show_statistics(current_user)
+
+    with profile_tabs[2]:
+        show_settings(current_user, books_df)
+
+    with profile_tabs[3]:
+        show_reminders(current_user)
+
+    return

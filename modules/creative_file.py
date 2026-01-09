@@ -1,9 +1,12 @@
+# modules/creative_file.py
 import streamlit as st
+from datetime import datetime as dt
 from modules.data_file import (
     add_creative_work, get_creative_works, 
     add_creative_work_comment, get_creative_work_comments,
     delete_creative_work 
 )
+from modules.custom_alerts import custom_success, custom_info, custom_empty
 
 def show_creative_works(user):
     st.subheader("🎨 Քո Ստեղծագործությունները")
@@ -11,7 +14,7 @@ def show_creative_works(user):
     tab1, tab2, tab3 = st.tabs(["➕ Նոր Ստեղծագործություն", "📂 Իմ Ստեղծագործությունները", "🌍 Համայնքի Ստեղծագործությունները"])
     
     with tab1:
-        st.write("### ✍️ Ստեղծել Նոր Ստեղծագործություն")
+        st.write("### ✍️ Հրապարակել Նոր Ստեղծագործություն")
         
         with st.form("creative_work_form", clear_on_submit=True):
             work_title = st.text_input("🎭 Վերնագիր *", placeholder="Ձեր ստեղծագործության վերնագիրը...")
@@ -26,13 +29,13 @@ def show_creative_works(user):
                                      height=80)
             
             content = st.text_area("📖 Բովանդակություն *", 
-                                 placeholder="Մուտքագրեք ձեր ստեղծագործության տեքստը այստեղ...",
+                                 placeholder="Մուտքագրեք ձեր ստեղծագործության տեքստն այստեղ...",
                                  height=200)
             
             is_public = st.checkbox("🌍 Հասանելի է բոլորին", value=True, 
                                   help="Եթե նշված է, ձեր ստեղծագործությունը տեսանելի կլինի բոլոր օգտատերերին")
             
-            submitted = st.form_submit_button("📤 Հրապարակել Ստեղծագործություն")
+            submitted = st.form_submit_button("📤 Հրապարակել Ստեղծագործությունը")
             
             if submitted:
                 if not work_title.strip() or not content.strip():
@@ -50,9 +53,9 @@ def show_creative_works(user):
                     )
                     
                     if work_id:
-                        st.success("✅ Ձեր ստեղծագործությունը հաջողությամբ հրապարակված է!")
+                        custom_success("✅ Ձեր ստեղծագործությունը հաջողությամբ հրապարակված է!")
                         if is_public:
-                            st.info("🌍 Ձեր ստեղծագործությունը այժմ հասանելի է բոլոր օգտատերերին")
+                            custom_info("🌍 Ձեր ստեղծագործությունը այժմ հասանելի է բոլոր օգտատերերին")
                     else:
                         st.error("❌ Չհաջողվեց հրապարակել ստեղծագործությունը")
     
@@ -78,15 +81,19 @@ def show_creative_works(user):
                         st.write(work['content'])
                     
                     with col2:
-                        st.write(f"**Հրապարակված է:**")
-                        st.write(work['created_at'])
+                        st.write("**Հրապարակված է:**")
+                        try:
+                            work_dt = dt.fromisoformat(work['created_at'].replace('Z', '+00:00'))
+                            st.write(work_dt.strftime("%Y-%m-%d %H:%M"))
+                        except:
+                            st.write(work['created_at'])
+                        
                         st.write(f"**Տեսանելիություն:** {'🌍 Հասարակական' if work['is_public'] else '🔒 Մասնավոր'}")
                         
-                        # DELETE BUTTON - ADD THIS SECTION
+                        # DELETE BUTTON
                         st.write("---")
                         st.write("**⚙️ Կառավարում**")
                         
-                        # Confirmation for delete
                         delete_key = f"delete_confirm_{work['id']}_{idx}"
                         if delete_key not in st.session_state:
                             st.session_state[delete_key] = False
@@ -105,8 +112,7 @@ def show_creative_works(user):
                                 if st.button("✅ Այո, Ջնջել", key=f"confirm_delete_{work['id']}_{idx}", type="primary"):
                                     success, message = delete_creative_work(work['id'], user['id'])
                                     if success:
-                                        st.success(message)
-                                        # Clear the confirmation state
+                                        custom_success(message)
                                         if delete_key in st.session_state:
                                             del st.session_state[delete_key]
                                         st.rerun()
@@ -126,7 +132,7 @@ def show_creative_works(user):
                     st.write("---")
                     show_creative_work_comments_section(work['id'], user, f"my_work_{work['id']}_{idx}")
         else:
-            st.info("📝 Դեռ չունեք հրապարակված ստեղծագործություններ։ Սկսեք ստեղծել ձեր առաջին աշխատանքը։")
+            custom_empty("📝 Դեռ չունեք հրապարակված ստեղծագործություններ։ Սկսեք ստեղծել ձեր առաջին աշխատանքը։")
     
     with tab3:
         st.write("### 🌍 Համայնքի Ստեղծագործություններ")
@@ -135,13 +141,17 @@ def show_creative_works(user):
         
         if community_works:
             for idx, work in enumerate(community_works):
-                # Don't show user's own works in community section
                 if work['user_id'] != user['id']:
                     with st.expander(f"🎭 {work['title']} - 👤 {work['username']} ({work['content_type']})"):
                         col1, col2 = st.columns([3, 1])
                         
                         with col1:
                             st.write(f"**Հեղինակ:** {work['username']}")
+                            if st.button(f"👤 Տեսնել {work['username']}-ի պրոֆիլը", key=f"profile_view_{work['id']}_{idx}"):
+                                st.session_state.viewed_profile = work['username']
+                                st.session_state.selected_tab = "profile"  # Նոր փոփոխական՝ tab-ը ընտրելու համար
+                                st.rerun()
+                            
                             st.write(f"**Տեսակ:** {work['content_type']}")
                             if work['genre']:
                                 st.write(f"**ժանր:** {work['genre']}")
@@ -153,39 +163,48 @@ def show_creative_works(user):
                             st.write(work['content'])
                         
                         with col2:
-                            st.write(f"**Հրապարակված է:**")
-                            st.write(work['created_at'])
+                            st.write("**Հրապարակված է:**")
+                            try:
+                                work_dt = dt.fromisoformat(work['created_at'].replace('Z', '+00:00'))
+                                st.write(work_dt.strftime("%Y-%m-%d %H:%M"))
+                            except:
+                                st.write(work['created_at'])
                         
-                        # Show comments for this work
+                        # Show comments
                         st.write("---")
                         show_creative_work_comments_section(work['id'], user, f"community_{work['id']}_{idx}")
         else:
-            st.info("👥 Դեռ չկան համայնքի ստեղծագործություններ։ Դուք կարող եք լինել առաջինը։")
+            custom_empty("👥 Դեռ չկան համայնքի ստեղծագործություններ։ Դուք կարող եք լինել առաջինը։")
 
 def show_creative_work_comments_section(creative_work_id, user, unique_suffix=""):
     """Show comments section for a specific creative work"""
     st.write("#### 💬 Մեկնաբանություններ")
     
-    # Get existing comments
     comments = get_creative_work_comments(creative_work_id)
     
-    # Display existing comments
     if comments:
         for comment in comments:
             with st.container():
                 col1, col2 = st.columns([3, 1])
                 with col1:
                     st.write(f"**👤 {comment['username']}**")
+                    if st.button(f"👤 Տեսնել {comment['username']}-ի պրոֆիլը", key=f"comment_profile_{comment['id']}_{unique_suffix}"):
+                        st.session_state.viewed_profile = comment['username']
+                        st.session_state.selected_tab = "profile"
+                        st.rerun()
                     st.write(comment['comment_text'])
                 with col2:
-                    st.write(f"_{comment['created_at']}_")
+                    try:
+                        comment_dt = dt.fromisoformat(comment['created_at'].replace('Z', '+00:00'))
+                        st.write(f"_{comment_dt.strftime('%Y-%m-%d %H:%M')}_")
+                    except:
+                        st.write(f"_{comment['created_at']}_")
                 st.markdown("---")
     else:
-        st.info("💭 Դեռ չկան մեկնաբանություններ։ Դուք կարող եք լինել առաջինը։")
+        custom_empty("💭 Դեռ չկան մեկնաբանություններ։ Դուք կարող եք լինել առաջինը։")
     
-    # Add new comment form
     with st.form(key=f"creative_comment_form_{creative_work_id}_{unique_suffix}"):
-        new_comment = st.text_area("Ձեր մեկնաբանությունը", height=80, 
+        new_comment = st.text_area("Ձեր մեկնաբանությունը", height=80,
                                  placeholder="Կիսվեք ձեր կարծիքով ստեղծագործության մասին...",
                                  key=f"creative_comment_{creative_work_id}_{unique_suffix}")
         
@@ -194,7 +213,7 @@ def show_creative_work_comments_section(creative_work_id, user, unique_suffix=""
         if submit_comment and new_comment.strip():
             success = add_creative_work_comment(creative_work_id, user['id'], new_comment.strip(), user['username'])
             if success:
-                st.success("✅ Ձեր մեկնաբանությունը հաջողությամբ ավելացվել է!")
+                custom_success("✅ Ձեր մեկնաբանությունը հաջողությամբ ավելացվել է!")
                 st.rerun()
             else:
                 st.error("❌ Չհաջողվեց ավելացնել մեկնաբանությունը")

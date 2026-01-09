@@ -1,0 +1,7 @@
+[theme]
+base = "light"  # Use light mode for a cozy, readable background
+primaryColor = "#BF6B3B"  # Terracotta orange for accents like buttons and highlights
+backgroundColor = "#FAF6F2"  # Cream beige for the main background
+secondaryBackgroundColor = "#F5E8DC"  # Light warm beige for sidebars, tabs, or secondary areas
+textColor = "#3F2A1D"  # Deep brown for all text (good contrast for readability)
+font = "serif"  # Optional: Serif font for a bookish, classic feel (change to "sans serif" if you prefer modern)
