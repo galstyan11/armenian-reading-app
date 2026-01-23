@@ -90,73 +90,102 @@ def show_statistics(user):
             else:
                 label = "🐢 Հանգիստ տեմպ"
             st.metric("Իրական Արագություն", f"{speed:.1f} էջ/րոպե")
-            st.success(f"**{label}** — հաշվված է Ձեր սեսիաներից")
+            custom_success(f"**{label}** — հաշվված է Ձեր ընթերցումների հիման վրա։")
         else:
             st.metric("Իրական Արագություն", "Դեռ չի հաշվվել")
-            custom_info("📝 Ավելացրեք առաջին ընթերցման սեսիան՝ Ձեր իրական արագությունը տեսնելու համար")
+            custom_info("📝 Սկսեք ընթերցել՝ Ձեր իրական արագությունը տեսնելու համար")
 
 
 def show_reminders(user):
     st.subheader("⏰ Ընթերցման Հիշեցումներ")
     
-    custom_info("**📖 Ընթերցման հիշեցումներ** - Սահմանեք ձեր ամենօրյա ընթերցման ժամանակը, և մենք կհիշեցնենք ձեզ 5 րոպե առաջ։")
-    
+    st.caption(
+            "Այս պահին հիշեցումները պահպանվում են համակարգում, բայց դեռ չեն ուղարկվում "
+            "ծանուցումներով կամ էլ. փոստով։\n"
+        )    
     existing_reminder = get_user_reminder(user['id'])
     
-    with st.form("reminder_form"):
-        col1, col2 = st.columns(2)
+    with st.form("reminder_form", clear_on_submit=False):
+        col1, col2 = st.columns([3, 4])
+            
         with col1:
             default_time = existing_reminder['reminder_time'] if existing_reminder else "20:00"
-            reminder_time = st.text_input("🕐 Ընթերցման ժամանակ", value=default_time, placeholder="20:00")
+            reminder_time = st.text_input(
+                "🕐 Ընթերցման ժամանակ (ԺԺ:ՐՐ)",
+                value=default_time,
+                help="Օրինակ՝ 19:30, 21:00"
+            )
+            
         with col2:
-            days_options = ["Երկուշաբթի", "Երեքշաբթի", "Չորեքշաբթի", "Հինգշաբթի", "Ուրբաթ", "Շաբաթ", "Կիրակի"]
-            default_days = existing_reminder['days_of_week'] if existing_reminder else days_options
-            selected_days = st.multiselect("📅 Օրեր", options=days_options, default=default_days)
+            days_options = ["Երկուշաբթի", "Երեքշաբթի", "Չորեքշաբթի", 
+                        "Հինգշաբթի", "Ուրբաթ", "Շաբաթ", "Կիրակի"]
+            default_days = existing_reminder['days_of_week'] if existing_reminder else days_options[:5]
+            selected_days = st.multiselect(
+                "📅 Օրեր",
+                options=days_options,
+                default=default_days,
+            )    
         
-        is_active = st.checkbox("Ակտիվացնել հիշեցումները", value=existing_reminder['is_active'] if existing_reminder else True)
-        
-        submitted = st.form_submit_button("💾 Պահպանել Հիշեցումը")
+        submitted = st.form_submit_button("💾 Պահպանել Հիշեցումը", type="primary")
         
         if submitted:
             if not selected_days:
-                st.error("❌ Խնդրում եմ ընտրել առնվազն մեկ օր")
-            elif not reminder_time:
-                st.error("❌ Խնդրում եմ մուտքագրել ժամանակ")
+                custom_warning("Խնդրում եմ ընտրել առնվազն մեկ օր")
+            elif not reminder_time.strip():
+                custom_warning("Խնդրում եմ մուտքագրել ժամանակը")
             else:
-                success = add_reminder(user['id'], reminder_time, selected_days, is_active)
-                if success:
-                    custom_success("✅ Հիշեցումը հաջողությամբ պահպանված է!")
-                    days_str = ", ".join(selected_days)
-                    custom_info(f"""
-                    **📋 Ձեր հիշեցման կարգավորումները:**
-                    - **⏰ Ժամանակ:** {reminder_time}
-                    - **📅 Օրեր:** {days_str}
-                    - **🔔 Կարգավիճակ:** {'Ակտիվ' if is_active else 'Անջատված'}
-                    - **⏱️ Հիշեցում:** 5 րոպե առաջ
-                    """)
-                    if is_active:
-                        st.balloons()
+                try:
+                    h, m = map(int, reminder_time.split(':'))
+                    if not (0 <= h <= 23 and 0 <= m <= 59):
+                        raise ValueError
+                    
+                    normalized_time = f"{h:02d}:{m:02d}"
+
+                except ValueError:
+                    custom_warning("Նշված ձևաչափը սխալ է: (օրինակ՝ 20:00)")
+            
                 else:
-                    st.error("❌ Չհաջողվեց պահպանել հիշեցումը")
+                    success = add_reminder(user['id'], reminder_time.strip(), selected_days, True)
+                    if success:
+                        custom_success("Հիշեցման կարգավորումները պահպանվել են!")
+                        st.rerun()
+                        
+                    else:
+                        custom_warning("Չհաջողվեց պահպանել հիշեցումը")
     
     st.subheader("🔔 Ընթացիկ Հիշեցում")
-    current_reminder = get_user_reminder(user['id'])
-    if current_reminder and current_reminder['is_active']:
-        days_str = ", ".join(current_reminder['days_of_week'])
-        custom_success(f"""
-        **✅ Ակտիվ հիշեցում**
-        - **⏰ Ժամանակ:** {current_reminder['reminder_time']}
-        - **📅 Օրեր:** {days_str}
-        - **⏱️ Հիշեցում:** 5 րոպե առաջ
-        """)
-        if check_reminder_time(user['id']):
-            st.warning("**🔔 Ընթերցման Ժամանակն է!** Մոտենում է ձեր ընթերցման ժամանակը:")
-            st.balloons()
-    elif current_reminder and not current_reminder['is_active']:
-        st.warning("**🔕 Հիշեցումները անջատված են**")
-    else:
-        custom_info("**Դեռ չունեք ակտիվ հիշեցումներ**")
+    current = get_user_reminder(user['id'])
 
+    if not current:
+        custom_info("Դեռ չունեք սահմանված հիշեցում")
+        return
+
+    
+    with st.container(border=True):
+        col1, col2 = st.columns([1, 3])
+
+        with col1:
+            st.markdown("Ժամանակ")
+            st.markdown(f"🕐 {current['reminder_time']}")
+
+        with col2:
+            st.markdown("Օրեր")
+            st.markdown(f"📅 {', '.join(current['days_of_week'])}")
+
+        st.caption(
+            f"Կարգավիճակ՝ {'Ակտիվ' if current.get('is_active', True) else 'Անջատված'}"
+        )
+
+        today_map = {
+            "Monday": "Երկուշաբթի", "Tuesday": "Երեքշաբթի", "Wednesday": "Չորեքշաբթի",
+            "Thursday": "Հինգշաբթի", "Friday": "Ուրբաթ", "Saturday": "Շաբաթ", "Sunday": "Կիրակի"
+        }
+        today = today_map.get(dt.now().strftime("%A"), "")
+
+        if today in current['days_of_week']:
+            custom_success("Այսօր ընթերցման պլանավորված օր է")
+        else:
+            custom_info("Այսօր ընթերցման պլան չկա")
 
 def show_settings(user, books_df):
     st.subheader("⚙️ Օգտատիրոջ Կարգավորումներ")
@@ -220,7 +249,7 @@ def show_settings(user, books_df):
                 custom_success("✅ Կարգավորումները պահպանված են!")
                 st.rerun()
         except Exception as e:
-            st.error(f"❌ Սխալ կարգավորումները պահպանելիս: {e}")
+            st.error(f"Սխալ կարգավորումները պահպանելիս: {e}")
 
 
 def show_read_books_section(viewed_user):
@@ -290,7 +319,7 @@ def show_full_profile(current_user, books_df):
         from modules.auth_file import load_users
         users = load_users()
         if viewed_username not in users:
-            st.error("❌ Օգտատերը չի գտնվել")
+            st.error("Օգտատերը չի գտնվել")
             return
         viewed_user = users[viewed_username]
         viewed_user['id'] = viewed_username

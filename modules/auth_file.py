@@ -32,12 +32,12 @@ def create_user(username, email, password, daily_reading_time=30, preferred_genr
     users = load_users()
     
     if username in users:
-        st.error("❌ Այս օգտանունն արդեն գոյություն ունի")
+        st.error("Այս օգտանունն արդեն գոյություն ունի")
         return False
     
     for user_data in users.values():
         if user_data.get('email') == email:
-            st.error("❌ Այս էլ․ փոստն արդեն գոյություն ունի")
+            st.error("Այս էլ․ փոստն արդեն գոյություն ունի")
             return False
     
     users[username] = {
@@ -93,9 +93,9 @@ def show_auth_page(books_df):
                     custom_success(f"✅ Բարի գալուստ, {user['username']}!")
                     st.rerun()
                 else:
-                    st.error("❌ Սխալ օգտանուն կամ գաղտնաբառ")
+                    st.error("Սխալ օգտանուն կամ գաղտնաբառ")
             else:
-                st.error("⚠️ Խնդրում եմ մուտքագրեք օգտանունը և գաղտնաբառը")
+                st.error("Խնդրում եմ մուտքագրեք օգտանունը և գաղտնաբառը")
                 
     with tab2:
         st.subheader("Նոր Գրանցում")
@@ -132,15 +132,15 @@ def show_auth_page(books_df):
         
         if st.button("📝 Գրանցվել", key="reg_btn", type="primary"):
             if not reg_username.strip():
-                st.error("❌ Խնդրում եմ մուտքագրեք օգտանուն")
+                st.error("Խնդրում եմ մուտքագրեք օգտանուն")
             elif not reg_email.strip():
-                st.error("❌ Խնդրում եմ մուտքագրեք էլ. փոստի հասցե")
+                st.error("Խնդրում եմ մուտքագրեք էլ. փոստի հասցե")
             elif not reg_password.strip():
-                st.error("❌ Խնդրում եմ մուտքագրեք գաղտնաբառ")
+                st.error("Խնդրում եմ մուտքագրեք գաղտնաբառ")
             elif reg_password != reg_confirm_password:
-                st.error("❌ Գաղտնաբառերը չեն համընկնում")
+                st.error("Գաղտնաբառերը չեն համընկնում")
             elif len(reg_password) < 4:
-                st.error("❌ Գաղտնաբառը պետք է լինի առնվազն 4 նիշ")
+                st.error("Գաղտնաբառը պետք է լինի առնվազն 4 նիշ")
             else:
                 success = create_user(
                     reg_username.strip(),

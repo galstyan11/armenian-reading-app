@@ -142,13 +142,15 @@ def add_reminder(user_id, reminder_time, days_of_week, is_active=True):
     """Add or update reading reminder"""
     reminders = load_data('reading_reminders', [])
     
+    user_id = str(user_id)
+
     # Remove old reminder for this user
     reminders = [r for r in reminders if r['user_id'] != user_id]
     
     reminder = {
         'id': len(reminders) + 1 if reminders else 1,
         'user_id': user_id,
-        'reminder_time': reminder_time,
+        'reminder_time': reminder_time.strip(),
         'days_of_week': days_of_week,
         'is_active': is_active,
         'created_at': datetime.now().isoformat()
@@ -156,17 +158,52 @@ def add_reminder(user_id, reminder_time, days_of_week, is_active=True):
     
     reminders.append(reminder)
     save_data('reading_reminders', reminders)
+    
     return True
 
 def get_user_reminder(user_id):
     """Get user's current reminder"""
+    user_id = str(user_id)
     reminders = load_data('reading_reminders', [])
     user_reminders = [r for r in reminders if r['user_id'] == user_id]
     return user_reminders[0] if user_reminders else None
 
 def check_reminder_time(user_id):
-    """Simplified check - always returns False for demo"""
-    return False
+
+    reminders = load_data('reading_reminders', [])
+    user_id = str(user_id)
+
+    reminder = next(
+        (r for r in reminders if r['user_id'] == user_id and r.get('is_active', True)),
+        None
+    )
+
+    if not reminder:
+        return False
+
+    now = datetime.now()
+
+    today_map = {
+        "Monday": "Երկուշաբթի",
+        "Tuesday": "Երեքշաբթի",
+        "Wednesday": "Չորեքշաբթի",
+        "Thursday": "Հինգշաբթի",
+        "Friday": "Ուրբաթ",
+        "Saturday": "Շաբաթ",
+        "Sunday": "Կիրակի"
+    }
+
+    today_arm = today_map.get(now.strftime("%A"))
+    if today_arm not in reminder['days_of_week']:
+        return False
+
+    try:
+        h, m = map(int, reminder['reminder_time'].split(":"))
+    except ValueError:
+        return False
+
+    return now.hour == h and now.minute == m
+
 
 def delete_creative_work(work_id, user_id):
     """Delete creative work if owned by user"""

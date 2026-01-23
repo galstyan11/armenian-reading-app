@@ -62,14 +62,14 @@ def show_book_comments_section(book_id, user, unique_suffix=""):
                 custom_success("✅ Ձեր մեկնաբանությունը հաջողությամբ ավելացվել է!")
                 st.rerun()
             else:
-                st.error("❌ Չհաջողվեց ավելացնել մեկնաբանությունը")
+                st.error("Չհաջողվեց ավելացնել մեկնաբանությունը")
 
 
 def show_all_books(books_df, user):
     st.subheader("📚 Գրքերի Ամբողջական Ցանկ")
     
     if books_df.empty:
-        st.error("❉ Չհաջողվեց բեռնել գրքերը")
+        st.error("Չհաջողվեց բեռնել գրքերը")
         return
     
     # Search & filter (your existing code)
@@ -138,7 +138,7 @@ def show_all_books(books_df, user):
                             type="primary"
                         )
                     else:
-                        st.error("❌ PDF հղումը չի աշխատում")
+                        st.error("PDF հղումը չի աշխատում")
                         st.markdown(f"[🔗 Փորձել արտաքին հղումը]({book['link']})")
                 else:
                     custom_warning("⚠️ Այս գրքի համար PDF հղում չկա")
@@ -171,7 +171,7 @@ def show_all_books(books_df, user):
                             custom_success("📊 Ընթերցման տվյալները պահպանված են!")
                             update_reading_speed(user['id'])
                     else:
-                        st.error("❌ Խնդրում եմ լրացրեք բոլոր դաշտերը ճիշտ")
+                        st.error("Խնդրում եմ լրացրեք բոլոր դաշտերը ճիշտ")
             
             with col2:
                 pass  # Ջնջված է — ոչինչ չի ցուցադրվում
@@ -205,7 +205,7 @@ def show_recommendations(books_df, user):
     st.subheader("💡 Անհատականացված Առաջարկներ")
     
     if books_df.empty:
-        st.error("❉ Չհաջողվեց բեռնել գրքերը")
+        st.error("Չհաջողվեց բեռնել գրքերը")
         return
     
     user_preferences = {
@@ -269,14 +269,14 @@ def show_recommendations(books_df, user):
                 
                 st.markdown("---")
     else:
-        custom_info("ℹ️ Չգտնվեցին առաջարկվող գրքեր։ Ստուգեք ձեր նախընտրությունները կարգավորումներում։")
+        custom_info("Չգտնվեցին առաջարկվող գրքեր։ Ստուգեք ձեր նախընտրությունները կարգավորումներում։")
 
 
 def show_reading_plan(books_df, user):
     st.subheader("📅 Ընթերցման Պլանավորում")
     
     if books_df.empty:
-        st.error("❉ Չհաջողվեց բեռնել գրքերը")
+        st.error("Չհաջողվեց բեռնել գրքերը")
         return
     
     selected_book = st.selectbox("Ընտրեք գիրք պլանավորման համար", options=books_df['title'].tolist(), index=0)
@@ -350,10 +350,10 @@ def show_reading_plan(books_df, user):
                 st.write(f"**Շաբաթական ժամանակ:** {daily_minutes * 7} րոպե")
                 
                 if daily_minutes > daily_time:
-                    custom_warning("⚠️ Օրական պլանը գերազանցում է Ձեր նախընտրած ժամանակը")
+                    custom_warning("Օրական պլանը գերազանցում է Ձեր նախընտրած ժամանակը")
                 else:
-                    custom_success("✅ Պլանը իրագործելի է Ձեր նախընտրած ժամանակում")
+                    custom_success("Պլանը իրագործելի է Ձեր նախընտրած ժամանակում")
             else:
-                st.error("❌ Չհաջողվեց հաշվարկել պլանը")
+                st.error("Չհաջողվեց հաշվարկել պլանը")
         else:
-            custom_warning("⚠️ Գրքի էջերի քանակը վավեր չէ")
+            custom_warning("Գրքի էջերի քանակը վավեր չէ")

@@ -6,7 +6,7 @@ from modules.data_file import (
     add_creative_work_comment, get_creative_work_comments,
     delete_creative_work 
 )
-from modules.custom_alerts import custom_success, custom_info, custom_empty
+from modules.custom_alerts import custom_success, custom_info, custom_empty, custom_warning
 
 def show_creative_works(user):
     st.subheader("🎨 Քո Ստեղծագործությունները")
@@ -39,7 +39,7 @@ def show_creative_works(user):
             
             if submitted:
                 if not work_title.strip() or not content.strip():
-                    st.error("❌ Վերնագիրը և բովանդակությունը պարտադիր են")
+                    st.error("Վերնագիրը և բովանդակությունը պարտադիր են")
                 else:
                     work_id = add_creative_work(
                         user['id'], 
@@ -53,11 +53,11 @@ def show_creative_works(user):
                     )
                     
                     if work_id:
-                        custom_success("✅ Ձեր ստեղծագործությունը հաջողությամբ հրապարակված է!")
+                        custom_success("Ձեր ստեղծագործությունը հաջողությամբ հրապարակված է!")
                         if is_public:
                             custom_info("🌍 Ձեր ստեղծագործությունը այժմ հասանելի է բոլոր օգտատերերին")
                     else:
-                        st.error("❌ Չհաջողվեց հրապարակել ստեղծագործությունը")
+                        st.error("Չհաջողվեց հրապարակել ստեղծագործությունը")
     
     with tab2:
         st.write("### 📂 Իմ Ստեղծագործությունները")
@@ -103,9 +103,9 @@ def show_creative_works(user):
                                 st.session_state[delete_key] = True
                                 st.rerun()
                         else:
-                            st.warning("⚠️ Դուք պատրաստվում եք ջնջել այս ստեղծագործությունը:")
+                            custom_warning("Դուք պատրաստվում եք ջնջել այս ստեղծագործությունը:")
                             st.write(f"**{work['title']}**")
-                            st.error("❌ Այս գործողությունը հնարավոր չէ հետարկել!")
+                            st.error("Այս գործողությունը հնարավոր չէ հետարկել!")
                             
                             col_confirm, col_cancel = st.columns(2)
                             with col_confirm:
@@ -123,7 +123,7 @@ def show_creative_works(user):
                                         st.rerun()
                             
                             with col_cancel:
-                                if st.button("❌ Չեղարկել", key=f"cancel_delete_{work['id']}_{idx}"):
+                                if st.button("Չեղարկել", key=f"cancel_delete_{work['id']}_{idx}"):
                                     if delete_key in st.session_state:
                                         del st.session_state[delete_key]
                                     st.rerun()
@@ -213,7 +213,7 @@ def show_creative_work_comments_section(creative_work_id, user, unique_suffix=""
         if submit_comment and new_comment.strip():
             success = add_creative_work_comment(creative_work_id, user['id'], new_comment.strip(), user['username'])
             if success:
-                custom_success("✅ Ձեր մեկնաբանությունը հաջողությամբ ավելացվել է!")
+                custom_success("Ձեր մեկնաբանությունը հաջողությամբ ավելացվել է!")
                 st.rerun()
             else:
-                st.error("❌ Չհաջողվեց ավելացնել մեկնաբանությունը")
+                st.error("Չհաջողվեց ավելացնել մեկնաբանությունը")
