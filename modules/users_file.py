@@ -1,7 +1,9 @@
 # modules/users_file.py
 import streamlit as st
 import pandas as pd
-from datetime import datetime as dt, timedelta
+from datetime import datetime, timezone, timedelta
+import pytz
+
 from modules.data_file import (
     get_user_sessions, add_reminder, get_user_reminder, check_reminder_time,
     calculate_reading_speed, load_users, get_creative_works
@@ -9,10 +11,11 @@ from modules.data_file import (
 from modules.utils import calculate_reading_plan
 from modules.custom_alerts import custom_success, custom_info, custom_warning, custom_empty
 from modules.auth_file import save_users
-from modules.books_csv import load_books  # Ավելացրել ենք import-ը
+from modules.books_csv import load_books
+from modules.time_utils import parse_iso, format_armenia
 
 
-@st.cache_data(ttl=3600)  # Քեշ 1 ժամով
+@st.cache_data(ttl=3600)  # Cache for 1 hour
 def _load_books_cached():
     return load_books()
 
@@ -27,10 +30,13 @@ def get_reading_insights(user_id):
     
     reading_speed = calculate_reading_speed(user_id)
     
-    one_week_ago = dt.now() - timedelta(days=7)
+    now_utc = datetime.now(timezone.utc)
+    one_week_ago_utc = now_utc - timedelta(days=7)
+    
     weekly_pages = sum(
-        session['pages_read'] for session in sessions 
-        if dt.fromisoformat(session['created_at'].replace('Z', '+00:00')) > one_week_ago
+        s['pages_read']
+        for s in sessions
+        if parse_iso(s['created_at']) > one_week_ago_utc
     )
     
     insights = []
@@ -68,7 +74,7 @@ def show_statistics(user):
     insights_data = get_reading_insights(user['id'])
     
     sessions = get_user_sessions(user['id'])
-    unique_book_ids = set(session['book_id'] for session in sessions)
+    unique_book_ids = set(s['book_id'] for s in sessions)
     total_books_read = len(unique_book_ids)
     
     col1, col2, col3, col4 = st.columns(4)
@@ -90,7 +96,7 @@ def show_statistics(user):
             else:
                 label = "🐢 Հանգիստ տեմպ"
             st.metric("Իրական Արագություն", f"{speed:.1f} էջ/րոպե")
-            custom_success(f"**{label}** — հաշվված է Ձեր ընթերցումների հիման վրա։")
+            custom_success(f"{label} — հաշվված է Ձեր ընթերցումների հիման վրա։")
         else:
             st.metric("Իրական Արագություն", "Դեռ չի հաշվվել")
             custom_info("📝 Սկսեք ընթերցել՝ Ձեր իրական արագությունը տեսնելու համար")
@@ -100,14 +106,15 @@ def show_reminders(user):
     st.subheader("⏰ Ընթերցման Հիշեցումներ")
     
     st.caption(
-            "Այս պահին հիշեցումները պահպանվում են համակարգում, բայց դեռ չեն ուղարկվում "
-            "ծանուցումներով կամ էլ. փոստով։\n"
-        )    
+        "Այս պահին հիշեցումները պահպանվում են համակարգում, բայց դեռ չեն ուղարկվում "
+        "ծանուցումներով կամ էլ. փոստով։"
+    )
+    
     existing_reminder = get_user_reminder(user['id'])
     
     with st.form("reminder_form", clear_on_submit=False):
         col1, col2 = st.columns([3, 4])
-            
+        
         with col1:
             default_time = existing_reminder['reminder_time'] if existing_reminder else "20:00"
             reminder_time = st.text_input(
@@ -115,16 +122,16 @@ def show_reminders(user):
                 value=default_time,
                 help="Օրինակ՝ 19:30, 21:00"
             )
-            
+        
         with col2:
             days_options = ["Երկուշաբթի", "Երեքշաբթի", "Չորեքշաբթի", 
-                        "Հինգշաբթի", "Ուրբաթ", "Շաբաթ", "Կիրակի"]
+                            "Հինգշաբթի", "Ուրբաթ", "Շաբաթ", "Կիրակի"]
             default_days = existing_reminder['days_of_week'] if existing_reminder else days_options[:5]
             selected_days = st.multiselect(
                 "📅 Օրեր",
                 options=days_options,
                 default=default_days,
-            )    
+            )
         
         submitted = st.form_submit_button("💾 Պահպանել Հիշեցումը", type="primary")
         
@@ -138,18 +145,14 @@ def show_reminders(user):
                     h, m = map(int, reminder_time.split(':'))
                     if not (0 <= h <= 23 and 0 <= m <= 59):
                         raise ValueError
-                    
                     normalized_time = f"{h:02d}:{m:02d}"
-
                 except ValueError:
                     custom_warning("Նշված ձևաչափը սխալ է: (օրինակ՝ 20:00)")
-            
                 else:
                     success = add_reminder(user['id'], reminder_time.strip(), selected_days, True)
                     if success:
                         custom_success("Հիշեցման կարգավորումները պահպանվել են!")
                         st.rerun()
-                        
                     else:
                         custom_warning("Չհաջողվեց պահպանել հիշեցումը")
     
@@ -160,14 +163,11 @@ def show_reminders(user):
         custom_info("Դեռ չունեք սահմանված հիշեցում")
         return
 
-    
     with st.container(border=True):
         col1, col2 = st.columns([1, 3])
-
         with col1:
             st.markdown("Ժամանակ")
             st.markdown(f"🕐 {current['reminder_time']}")
-
         with col2:
             st.markdown("Օրեր")
             st.markdown(f"📅 {', '.join(current['days_of_week'])}")
@@ -176,16 +176,21 @@ def show_reminders(user):
             f"Կարգավիճակ՝ {'Ակտիվ' if current.get('is_active', True) else 'Անջատված'}"
         )
 
+        yerevan = pytz.timezone("Asia/Yerevan")
+        now_yerevan = datetime.now(timezone.utc).astimezone(yerevan)
+        today_en = now_yerevan.strftime("%A")
+        
         today_map = {
             "Monday": "Երկուշաբթի", "Tuesday": "Երեքշաբթի", "Wednesday": "Չորեքշաբթի",
             "Thursday": "Հինգշաբթի", "Friday": "Ուրբաթ", "Saturday": "Շաբաթ", "Sunday": "Կիրակի"
         }
-        today = today_map.get(dt.now().strftime("%A"), "")
+        today_arm = today_map.get(today_en, "")
 
-        if today in current['days_of_week']:
+        if today_arm in current['days_of_week']:
             custom_success("Այսօր ընթերցման պլանավորված օր է")
         else:
             custom_info("Այսօր ընթերցման պլան չկա")
+
 
 def show_settings(user, books_df):
     st.subheader("⚙️ Օգտատիրոջ Կարգավորումներ")
@@ -193,12 +198,10 @@ def show_settings(user, books_df):
     st.write(f"**Օգտանուն:** {user['username']}")
     st.write(f"**Էլ. Փոստ:** {user['email']}")
     
-    created_at_str = user.get('created_at', None)
+    created_at_str = user.get('created_at')
     if created_at_str:
         try:
-            full_dt = dt.fromisoformat(created_at_str.replace('Z', '+00:00'))
-            formatted_date = full_dt.strftime("%Y-%m-%d %H:%M")
-            st.write(f"**Գրանցման ամսաթիվ:** {formatted_date}")
+            st.write(f"**Գրանցման ամսաթիվ:** {format_armenia(parse_iso(created_at_str))}")
         except Exception:
             st.write(f"**Գրանցման ամսաթիվ:** {created_at_str}")
     else:
@@ -206,45 +209,68 @@ def show_settings(user, books_df):
     
     st.subheader("🔄 Թարմացնել Նախապատվությունները")
     
-    if user['reading_speed'] is not None:
+    if user.get('reading_speed') is not None:
         st.write(f"**Ընթերցման Արագություն:** {user['reading_speed']:.1f} էջ/րոպե")
         st.caption("Այս արժեքն ավտոմատ հաշվվում է Ձեր ընթերցումների հիման վրա։")
     else:
         st.write("**Ընթերցման Արագություն:** Դեռ չի հաշվվել")
         custom_info("📝 Սկսեք ընթերցել իրական արագությունը տեսնելու համար")
     
-    new_daily_time = st.slider("Օրական Ընթերցման Ժամանակ (րոպե)", 15, 180, user['daily_reading_time'])
+    new_daily_time = st.slider(
+        "Օրական Ընթերցման Ժամանակ (րոպե)",
+        15, 180,
+        user.get('daily_reading_time', 30)
+    )
     
     available_genres = books_df['genre'].unique().tolist() if not books_df.empty else []
-    current_genres = user['preferred_genres'] if user['preferred_genres'] else []
-    new_preferred_genres = st.multiselect("Նախընտրելի Ժանրեր", available_genres, default=current_genres,
-                                          placeholder="Կարող եք ընտրել մի քանիսը", key="settings_genres")
+    current_genres = user.get('preferred_genres', [])
+    new_preferred_genres = st.multiselect(
+        "Նախընտրելի Ժանրեր",
+        available_genres,
+        default=current_genres,
+        placeholder="Կարող եք ընտրել մի քանիսը",
+        key="settings_genres"
+    )
     
     current_language = user.get('preferred_language', 'Հայերեն')
-    new_preferred_language = st.selectbox("Նախընտրելի Լեզու", ["Հայերեն", "Ռուսերեն", "Անգլերեն"],
-                                          index=["Հայերեն", "Ռուսերեն", "Անգլերեն"].index(current_language))
+    lang_options = ["Հայերեն", "Ռուսերեն", "Անգլերեն"]
+    new_preferred_language = st.selectbox(
+        "Նախընտրելի Լեզու",
+        lang_options,
+        index=lang_options.index(current_language)
+    )
     
-    new_age = st.number_input("Տարիք", min_value=13, max_value=120,
-                              value=user.get('age') if user.get('age') is not None else 18, step=1)
+    new_age = st.number_input(
+        "Տարիք",
+        min_value=13,
+        max_value=120,
+        value=user.get('age') if user.get('age') is not None else 18,
+        step=1
+    )
+    
     new_profession = st.text_input("Մասնագիտություն", value=user.get('profession', ''))
     new_bio = st.text_area("Իմ մասին", value=user.get('bio', ''), height=100)
     
     if st.button("💾 Պահպանել Կարգավորումները"):
         try:
             users = load_users()
-            if user['username'] in users:
-                users[user['username']]['daily_reading_time'] = new_daily_time
-                users[user['username']]['preferred_genres'] = new_preferred_genres
-                users[user['username']]['preferred_language'] = new_preferred_language
-                users[user['username']]['age'] = new_age if new_age != 18 else None
-                users[user['username']]['profession'] = new_profession.strip() or None
-                users[user['username']]['bio'] = new_bio.strip() or None
+            username = user['username']
+            if username in users:
+                users[username].update({
+                    'daily_reading_time': new_daily_time,
+                    'preferred_genres': new_preferred_genres,
+                    'preferred_language': new_preferred_language,
+                    'age': new_age if new_age != 18 else None,
+                    'profession': new_profession.strip() or None,
+                    'bio': new_bio.strip() or None,
+                })
                 
                 save_users(users)
                 
-                st.session_state.user = users[user['username']].copy()
-                st.session_state.user['username'] = user['username']
-                st.session_state.user['id'] = user['username']
+                # Update session state
+                st.session_state.user = users[username].copy()
+                st.session_state.user['username'] = username
+                st.session_state.user['id'] = username
                 
                 custom_success("✅ Կարգավորումները պահպանված են!")
                 st.rerun()
@@ -253,7 +279,6 @@ def show_settings(user, books_df):
 
 
 def show_read_books_section(viewed_user):
-    """Կարդացած գրքերի բաժինը — օգտագործվում է և՛ սեփական, և՛ ուրիշի պրոֆիլում"""
     st.subheader("📚 Կարդացած Գրքեր")
 
     user_sessions = get_user_sessions(viewed_user['id'])
@@ -261,7 +286,6 @@ def show_read_books_section(viewed_user):
         custom_empty("Դեռ չկան գրանցված ընթերցումներ։")
         return
 
-    # Հավաքել ընդհանուր կարդացած էջերը յուրաքանչյուր գրքի համար
     book_progress = {}
     for session in user_sessions:
         book_id = session['book_id']
@@ -292,7 +316,6 @@ def show_read_books_section(viewed_user):
         custom_empty("Գրքերի մասին տեղեկություն չի գտնվել։")
         return
 
-    # Տեսակավորել՝ ամենաշատ կարդացածները վերևում
     read_books_list.sort(key=lambda x: x['pages_read'], reverse=True)
 
     for book in read_books_list:
@@ -311,22 +334,29 @@ def show_read_books_section(viewed_user):
                     st.caption(f"{book['pages_read']} էջ")
             st.markdown("")
 
+
+# ... (top imports remain the same) ...
+
+
 def show_full_profile(current_user, books_df):
     viewed_username = st.session_state.get('viewed_profile', None)
     
+    # Optional debug (remove after testing)
+    # st.caption(f"DEBUG: Viewing profile for {viewed_username or 'myself'}, current={current_user['username']}")
+
     if viewed_username and viewed_username != current_user['username']:
-        # Ուրիշի պրոֆիլ — առանց tab-երի
         from modules.auth_file import load_users
         users = load_users()
         if viewed_username not in users:
             st.error("Օգտատերը չի գտնվել")
             return
+        
         viewed_user = users[viewed_username]
         viewed_user['id'] = viewed_username
         viewed_user['username'] = viewed_username
+        
         st.subheader(f"👤 {viewed_username}-ի Պրոֆիլը")
 
-        # Ավատար և տվյալներ
         col1, col2 = st.columns([1, 3])
         with col1:
             initial = viewed_user['username'][0].upper()
@@ -347,8 +377,9 @@ def show_full_profile(current_user, books_df):
             if viewed_user.get('bio'):
                 st.write(f"**{viewed_user['username']}-ի մասին:** {viewed_user['bio']}")
 
-            created_at = viewed_user.get('created_at', 'Անհայտ')[:10] if viewed_user.get('created_at') else 'Անհայտ'
-            st.write(f"**Գրանցվել է:** {created_at}")
+            created_at_str = viewed_user.get('created_at')
+            reg_date = format_armenia(parse_iso(created_at_str)) if created_at_str else "Անհայտ"
+            st.write(f"**Գրանցվել է:** {reg_date}")
 
         st.markdown("---")
         show_read_books_section(viewed_user)
@@ -356,17 +387,23 @@ def show_full_profile(current_user, books_df):
         if st.button("🔙 Վերադառնալ իմ պրոֆիլին"):
             if 'viewed_profile' in st.session_state:
                 del st.session_state.viewed_profile
+            if 'active_profile_tab' in st.session_state:
+                del st.session_state.active_profile_tab
             st.rerun()
         return
 
-    # === ՍԵՓԱԿԱՆ ՊՐՈՖԻԼ ===
+    # Own profile
     viewed_user = current_user
     st.subheader("👤 Իմ Պրոֆիլը")
 
-    # TAB-ԵՐԸ ՎԵՐԵՎՈՒՄ
     profile_tabs = st.tabs(["📋 Տեղեկություններ", "📊 Վիճակագրություն", "⚙️ Կարգավորումներ", "⏰ Հիշեցումներ"])
 
-    with profile_tabs[0]:  # Տեղեկություններ
+    # Optional: force tab selection if coming from other profile view
+    if 'active_profile_tab' in st.session_state:
+        # Streamlit tabs don't support direct selection, but rerun helps
+        pass
+
+    with profile_tabs[0]:
         col1, col2 = st.columns([1, 3])
         with col1:
             initial = viewed_user['username'][0].upper()
@@ -387,13 +424,13 @@ def show_full_profile(current_user, books_df):
             if viewed_user.get('bio'):
                 st.write(f"**Իմ մասին:** {viewed_user['bio']}")
 
-            created_at = viewed_user.get('created_at', 'Անհայտ')[:10] if viewed_user.get('created_at') else 'Անհայտ'
-            st.write(f"**Գրանցվել է:** {created_at}")
+            created_at_str = viewed_user.get('created_at')
+            reg_date = format_armenia(parse_iso(created_at_str)) if created_at_str else "Անհայտ"
+            st.write(f"**Գրանցվել է:** {reg_date}")
 
             st.markdown("**Ընթերցման Նախապատվություններ**")
             speed_display = f"{viewed_user['reading_speed']:.1f} էջ/րոպե" if viewed_user.get('reading_speed') is not None else "Դեռ չի հաշվվել"
             st.write(f"• Արագություն: {speed_display}")
-            st.write(f"• Օրական ժամանակ: {viewed_user['daily_reading_time']} րոպե")
             st.write(f"• Լեզու: {viewed_user.get('preferred_language', 'Հայերեն')}")
             if viewed_user.get('preferred_genres'):
                 st.write(f"• Ժանրեր: {', '.join(viewed_user['preferred_genres'])}")

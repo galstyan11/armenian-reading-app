@@ -1,14 +1,17 @@
 {
   "Միլենա Գալստյան": {
-    "email": "m",
-    "password": "87eee136f73cd0a771068277f170bd4ad82d929fd17507e3939a5182186d40c1",
-    "reading_speed": null,
-    "daily_reading_time": 30,
-    "preferred_genres": [],
-    "preferred_language": "Հայերեն",
-    "age": null,
-    "profession": null,
-    "bio": null,
-    "created_at": "2026-01-23T12:57:14.971816"
+    "email": "galstyanm03@gmail.com",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "reading_speed": 0.7,
+    "daily_reading_time": 45,
+    "preferred_genres": [
+      "Դետեկտիվ",
+      "Դրամա"
+    ],
+    "preferred_language": "Անգլերեն",
+    "age": 21,
+    "profession": "ծրագրավորող",
+    "bio": "ազատ ժամանակ սիրում եմ ընթերցել․․․",
+    "created_at": "2026-01-23T10:09:12.311050+00:00"
   }
 }
