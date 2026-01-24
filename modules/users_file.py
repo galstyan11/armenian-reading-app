@@ -334,15 +334,8 @@ def show_read_books_section(viewed_user):
                     st.caption(f"{book['pages_read']} էջ")
             st.markdown("")
 
-
-# ... (top imports remain the same) ...
-
-
 def show_full_profile(current_user, books_df):
     viewed_username = st.session_state.get('viewed_profile', None)
-    
-    # Optional debug (remove after testing)
-    # st.caption(f"DEBUG: Viewing profile for {viewed_username or 'myself'}, current={current_user['username']}")
 
     if viewed_username and viewed_username != current_user['username']:
         from modules.auth_file import load_users

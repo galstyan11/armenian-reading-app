@@ -4,6 +4,13 @@ from modules.auth_file import show_auth_page
 from modules.books_csv import load_books
 from modules.ui_components import show_header, show_main_tabs
 
+# ✅ MUST be the first Streamlit command
+st.set_page_config(
+    page_title="Կարդա ինձ հետ",
+    page_icon="assets/sticker.png",
+    layout="wide"
+)
+
 # Load custom CSS
 try:
     with open("style.css", "r", encoding="utf-8") as css_file:
@@ -12,12 +19,6 @@ except FileNotFoundError:
     st.error("⚠️ style.css file not found!")
 
 def main():
-    st.set_page_config(
-        page_title="📖 Ընթերցանության Հավելված",
-        page_icon="📚",
-        layout="wide"
-    )
-
     if 'user' not in st.session_state:
         st.session_state.user = None
     if 'page' not in st.session_state:

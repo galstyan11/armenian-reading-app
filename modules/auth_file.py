@@ -65,14 +65,14 @@ def create_user(
     users[username] = {
         'email': email,
         'password': hash_password(password),
-        'reading_speed': None,  # Will be calculated from sessions
+        'reading_speed': None, 
         'daily_reading_time': daily_reading_time,
         'preferred_genres': preferred_genres or [],
         'preferred_language': preferred_language,
         'age': age,
         'profession': profession,
         'bio': bio,
-        'created_at': iso_now_utc(),  # UTC ISO format — consistent with rest of app
+        'created_at': iso_now_utc(),  
     }
 
     save_users(users)

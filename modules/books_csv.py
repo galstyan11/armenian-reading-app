@@ -415,7 +415,7 @@ def show_reading_plan(books_df, user):
             custom_info(f"Ընդհանուր ընթերցման ժամանակ: {total_hours:.1f} ժամ")
 
             # Weekly view (based on the chosen target)
-            st.subheader("📅 Շաբաթական ակնկալիք")
+            st.subheader("📅 Շաբաթական պլան")
             st.write(f"Շաբաթական էջեր՝ **{required_daily_pages * 7:.1f}** էջ")
             st.write(f"Շաբաթական ժամանակ՝ **{required_daily_minutes * 7:.0f}** րոպե")
 
