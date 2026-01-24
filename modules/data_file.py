@@ -8,7 +8,6 @@ import pytz
 from modules.auth_file import load_users, save_users
 from modules.time_utils import iso_now_utc, parse_iso, to_armenia, format_armenia
 
-
 def ensure_data_dir():
     """Ensure data directory exists"""
     os.makedirs("data", exist_ok=True)
@@ -236,7 +235,7 @@ def delete_creative_work(work_id, user_id):
         )
 
         if not work_to_delete:
-            return False, "❌ Միայն կարող եք ջնջել ձեր սեփական ստեղծագործությունները"
+            return False, "Միայն կարող եք ջնջել ձեր սեփական ստեղծագործությունները"
 
         works = [w for w in works if w["id"] != work_id]
         comments = [c for c in comments if c["creative_work_id"] != work_id]
@@ -244,10 +243,10 @@ def delete_creative_work(work_id, user_id):
         save_data("creative_works", works)
         save_data("creative_work_comments", comments)
 
-        return True, "✅ Ստեղծագործությունը հաջողությամբ ջնջված է"
+        return True, "Ստեղծագործությունը հաջողությամբ ջնջված է"
 
     except Exception as e:
-        return False, f"❌ Ջնջման սխալ: {str(e)}"
+        return False, f"Ջնջման սխալ: {str(e)}"
 
 
 def calculate_reading_speed(user_id):

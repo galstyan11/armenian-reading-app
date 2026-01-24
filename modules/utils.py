@@ -149,7 +149,7 @@ def get_advanced_recommendations(books_df, user_preferences: Dict[str, Any]) -> 
         # 3. Տարիքային փափուկ բոնուս (ոչ պարտադիր)
         if age is not None:
             genre = book.get('genre', '')
-            if age < 18 and genre in ['Ֆանտաստիկա', 'Մանկական', 'Արագարկող', 'Սիրավեպ']:
+            if age < 18 and genre in ['Ֆանտաստիկա', 'Ավանդապատում', 'Մոտիվացիոն', 'Սիրավեպ']:
                 score += 10
             elif age > 40 and genre in ['Պատմական', 'Դասական', 'Գիտական', 'Կենսագրություն', 'Փիլիսոփայություն']:
                 score += 8

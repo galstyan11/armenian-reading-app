@@ -4,9 +4,26 @@ from modules.auth_file import logout
 
 def show_header(user):
     """Display the top header with welcome message and logout button"""
-    col1, col2, col3 = st.columns([3, 1, 1])
+    col1, col2, col3 = st.columns([4, 1, 1])
+
     with col1:
-        st.title(f"📖 Բարի Գալուստ, {user['username']}!")
+        st.markdown(
+            f"""<div style="margin-top: 10px;">
+                <div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
+                    Սիրելի {user['username']},
+                </div>
+                <div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
+                    Բարի գալուստ
+                </div>
+                <div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
+                    <span style="color: #f77214; font-weight: 700;">ԿԱՐԴԱ</span>
+                    <span style="color: #672f1b; font-weight: 700;"> ինձ հետ</span> հավելված!
+                </div>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        
+
     with col3:
         if st.button("🚪 Դուրս Գալ", type="secondary"):
             logout()

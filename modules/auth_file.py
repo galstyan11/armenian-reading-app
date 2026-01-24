@@ -98,11 +98,20 @@ def logout():
     st.session_state.page = "login"
     st.rerun()
 
-
 def show_auth_page(books_df):
-    st.title("🔐 Մուտք Գործել կամ Գրանցվել")
+    st.markdown(
+            f"""<div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
+                    Բարի գալուստ
+                </div>
+                <div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
+                    <span style="color: #f77214; font-weight: 700;">ԿԱՐԴԱ</span>
+                    <span style="color: #672f1b; font-weight: 700;"> ինձ հետ</span> հավելված!
+                </div>
+            </div>""",
+            unsafe_allow_html=True
+        )
 
-    tab1, tab2 = st.tabs(["🚪 Մուտք Գործել", "📝 Գրանցվել"])
+    tab1, tab2 = st.tabs(["Մուտք Գործել", "Գրանցվել"])
 
     with tab1:
         st.subheader("Մուտք Գործել")
@@ -116,7 +125,7 @@ def show_auth_page(books_df):
                 if user:
                     st.session_state.user = user
                     st.session_state.page = "main"
-                    custom_success(f"✅ Բարի գալուստ, {user['username']}!")
+                    custom_success(f"Բարի գալուստ, {user['username']}!")
                     st.rerun()
                 else:
                     st.error("Սխալ օգտանուն կամ գաղտնաբառ")
@@ -125,7 +134,7 @@ def show_auth_page(books_df):
 
     with tab2:
         st.subheader("Նոր Գրանցում")
-        custom_info("📝 Մուտքագրեք ձեր տվյալները նոր գրանցման համար")
+        custom_info("Մուտքագրեք ձեր տվյալները նոր գրանցման համար")
 
         reg_username = st.text_input("Օգտանուն *", key="reg_username")
         reg_email = st.text_input("Էլ. Փոստ *", key="reg_email")
@@ -164,7 +173,7 @@ def show_auth_page(books_df):
             key="reg_language"
         )
 
-        if st.button("📝 Գրանցվել", key="reg_btn", type="primary"):
+        if st.button("Գրանցվել", key="reg_btn", type="primary"):
             if not reg_username.strip():
                 st.error("Խնդրում եմ մուտքագրեք օգտանուն")
             elif not reg_email.strip():
@@ -192,5 +201,5 @@ def show_auth_page(books_df):
                     if new_user:
                         st.session_state.user = new_user
                         st.session_state.page = "main"
-                        custom_success("✅ Գրանցումը հաջող էր! Բարի գալուստ!")
+                        custom_success("Գրանցումը հաջող էր! Բարի գալուստ!")
                         st.rerun()

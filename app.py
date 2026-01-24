@@ -4,7 +4,6 @@ from modules.auth_file import show_auth_page
 from modules.books_csv import load_books
 from modules.ui_components import show_header, show_main_tabs
 
-# ✅ MUST be the first Streamlit command
 st.set_page_config(
     page_title="Կարդա ինձ հետ",
     page_icon="assets/sticker.png",
@@ -16,7 +15,7 @@ try:
     with open("style.css", "r", encoding="utf-8") as css_file:
         st.markdown(f"<style>{css_file.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
-    st.error("⚠️ style.css file not found!")
+    st.error("style.css file not found!")
 
 def main():
     if 'user' not in st.session_state:

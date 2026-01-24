@@ -39,28 +39,27 @@ def load_books():
 
 
 def show_book_comments_section(book_id, user, unique_suffix=""):
-    st.subheader("💬 Մեկնաբանություններ")
+    st.subheader("Մեկնաբանություններ")
 
     comments = get_book_comments(book_id)
     comments = sorted(comments, key=lambda c: c['created_at'], reverse=True)
 
     if comments:
-        st.write("### 📝 Գրքի Մասին Մեկնաբանություններ")
         for comment in comments:
             with st.container():
                 col1, col2 = st.columns([3, 1])
                 with col1:
-                    st.write(f"**👤 {comment['username']}**")
+                    st.write(f"**{comment['username']}**")
                     st.write(comment['comment_text'])
                     if comment.get('rating'):
-                        st.write(f"⭐ Վարկանիշ: {comment['rating']}/5")
+                        st.write(f"Վարկանիշ: {comment['rating']}/5")
                 with col2:
                     st.write(f"_{format_armenia(parse_iso(comment['created_at']))}_")
                 st.markdown("---")
     else:
-        custom_empty("📝 Մեկնաբանություններ դեռ չկան։ Դուք կարող եք լինել առաջինը։")
+        custom_empty("Մեկնաբանություններ դեռ չկան։ Դուք կարող եք լինել առաջինը։")
 
-    st.write("### ✍️ Ավելացնել Նոր Մեկնաբանություն")
+    st.write("### Ավելացնել Նոր Մեկնաբանություն")
     with st.form(key=f"comment_form_{book_id}_{unique_suffix}"):
         new_comment = st.text_area(
             "Ձեր մեկնաբանությունը",
@@ -75,7 +74,7 @@ def show_book_comments_section(book_id, user, unique_suffix=""):
             key=f"rating_{book_id}_{unique_suffix}"
         )
 
-        submit_comment = st.form_submit_button("📤 Ուղարկել")
+        submit_comment = st.form_submit_button("Ուղարկել")
 
         if submit_comment and new_comment.strip():
             success = add_book_comment(
@@ -86,14 +85,14 @@ def show_book_comments_section(book_id, user, unique_suffix=""):
                 user['username']
             )
             if success:
-                custom_success("✅ Ձեր մեկնաբանությունը հաջողությամբ ավելացվել է!")
+                custom_success("Ձեր մեկնաբանությունը հաջողությամբ ավելացվել է!")
                 st.rerun()
             else:
                 st.error("Չհաջողվեց ավելացնել մեկնաբանությունը")
 
 
 def show_all_books(books_df, user):
-    st.subheader("📚 Գրքերի Ամբողջական Ցանկ")
+    st.subheader("Գրքերի Ամբողջական Ցանկ")
 
     if books_df.empty:
         st.error("Չհաջողվեց բեռնել գրքերը")
@@ -120,7 +119,7 @@ def show_all_books(books_df, user):
         filtered_books = filtered_books[filtered_books['genre'] == selected_genre]
 
     # Pagination
-    ITEMS_PER_PAGE = 5
+    ITEMS_PER_PAGE = 10
     if 'book_page' not in st.session_state:
         st.session_state.book_page = 0
 
@@ -132,7 +131,7 @@ def show_all_books(books_df, user):
     page_books = filtered_books.iloc[start_idx:end_idx]
 
     for idx, (_, book) in enumerate(page_books.iterrows()):
-        with st.expander(f"📗 {book['title']} - {book['author']}"):
+        with st.expander(f"{book['title']} - {book['author']}"):
             col1, col2 = st.columns([3, 2])
 
             with col1:
@@ -147,7 +146,7 @@ def show_all_books(books_df, user):
                     st.write(f"**Նկարագրություն:** {book['description']}")
 
                 st.write("---")
-                st.write("**📖 Կարդալ Գիրքը**")
+                st.write("**Կարդալ Գիրքը**")
 
                 if pd.notna(book['link']) and book['link'].strip():
                     if book['id'] not in st.session_state.get('link_status', {}):
@@ -160,11 +159,11 @@ def show_all_books(books_df, user):
                     if link_status:
                         st.markdown(
                             "<p style='color: #8B4513; font-size: 18px; text-align: center; font-weight: bold; margin: 20px 0;'>"
-                            "📚 Գիրքը հասանելի է առցանց</p>",
+                            "Գիրքը հասանելի է առցանց</p>",
                             unsafe_allow_html=True
                         )
                         st.link_button(
-                            "📖 Բացել Գիրքը",
+                            "Բացել Գիրքը",
                             book['link'],
                             use_container_width=True,
                             type="primary"
@@ -173,10 +172,10 @@ def show_all_books(books_df, user):
                         st.error("PDF հղումը չի աշխատում")
                         st.markdown(f"[🔗 Փորձել արտաքին հղումը]({book['link']})")
                 else:
-                    custom_warning("⚠️ Այս գրքի համար PDF հղում չկա")
+                    custom_warning("Այս գրքի համար PDF հղում չկա")
 
                 st.write("---")
-                st.write("📖 Ընթերցման Հետևում")
+                st.write("Ընթերցման Հետևում")
 
                 c1, c2, c3 = st.columns(3)
                 with c1:
@@ -209,9 +208,9 @@ def show_all_books(books_df, user):
                         end_dt += timedelta(days=1)
                     duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
                     if duration_minutes > 0:
-                        custom_info(f"⏱️ Ընթերցման ժամանակ: **{duration_minutes} րոպե**")
+                        custom_info(f"Ընթերցման ժամանակ: **{duration_minutes} րոպե**")
 
-                if st.button("💾 Պահպանել Ընթերցումը", key=f"save_{book['id']}_{idx}"):
+                if st.button("Պահպանել Ընթերցումը", key=f"save_{book['id']}_{idx}"):
                     if pages_read > 0 and start_time and end_time and duration_minutes > 0:
                         success = add_reading_session(
                             user['id'],
@@ -221,7 +220,7 @@ def show_all_books(books_df, user):
                             book['title']
                         )
                         if success:
-                            custom_success("📊 Ընթերցման տվյալները պահպանված են!")
+                            custom_success("Ընթերցման տվյալները պահպանված են!")
                             update_reading_speed(user['id'])
                     else:
                         st.error("Խնդրում եմ լրացրեք բոլոր դաշտերը ճիշտ")
@@ -253,7 +252,7 @@ def show_all_books(books_df, user):
 
 
 def show_recommendations(books_df, user):
-    st.subheader("💡 Անհատականացված Առաջարկներ")
+    st.subheader("Անհատականացված Առաջարկներ")
 
     if books_df.empty:
         st.error("Չհաջողվեց բեռնել գրքերը")
@@ -288,7 +287,7 @@ def show_recommendations(books_df, user):
                     st.write(f"**Լեզու:** {book['language']}")
 
                     rec = get_reading_time_recommendation(book['genre'])
-                    custom_success(f"**⏰ Ընթերցման առաջարկ:** {rec['icon']} {rec['time']}")
+                    custom_success(f"Ընթերցման առաջարկ: {rec['icon']} {rec['time']}")
                     st.write(f"*{rec['reason']}*")
 
                     if pd.notna(book['link']) and book['link'].strip():
@@ -300,21 +299,21 @@ def show_recommendations(books_df, user):
                         if st.session_state.link_status[book['id']]:
                             st.markdown(
                                 "<p style='color: #8B4513; font-size: 18px; text-align: center; font-weight: bold; margin: 20px 0;'>"
-                                "📚 Գիրքը հասանելի է առցանց</p>",
+                                "Գիրքը հասանելի է առցանց</p>",
                                 unsafe_allow_html=True
                             )
                             st.link_button(
-                                "📖 Կարդալ Այս Գիրքը",
+                                "Կարդալ Այս Գիրքը",
                                 book['link'],
                                 use_container_width=True,
                                 type="primary"
                             )
 
                     if pd.notna(book['description']) and book['description'].strip():
-                        with st.expander("📖 Նկարագրություն"):
+                        with st.expander("Նկարագրություն"):
                             st.write(book['description'])
 
-                    with st.expander("💬 Մեկնաբանություններ"):
+                    with st.expander("Մեկնաբանություններ"):
                         show_book_comments_section(book['id'], user, f"rec_{book['id']}_{idx}")
 
                 with col2:
@@ -326,7 +325,7 @@ def show_recommendations(books_df, user):
 
 
 def show_reading_plan(books_df, user):
-    st.subheader("📅 Ընթերցման Պլանավորում")
+    st.subheader("Ընթերցման Պլանավորում")
 
     if books_df.empty:
         st.error("Չհաջողվեց բեռնել գրքերը")
@@ -348,7 +347,7 @@ def show_reading_plan(books_df, user):
         st.write(f"**Ժանր:** {book_info['genre']}")
 
         recommendation = get_reading_time_recommendation(book_info['genre'])
-        custom_info(f"**⏰ Ընթերցման առաջարկ:** {recommendation['icon']} {recommendation['time']}")
+        custom_info(f"**Ընթերցման առաջարկ:** {recommendation['icon']} {recommendation['time']}")
         st.write(f"*{recommendation['reason']}*")
 
         if pd.notna(book_info['link']) and book_info['link'].strip():
@@ -360,11 +359,11 @@ def show_reading_plan(books_df, user):
             if st.session_state.link_status[book_info['id']]:
                 st.markdown(
                     "<p style='color: #8B4513; font-size: 18px; text-align: center; font-weight: bold; margin: 20px 0;'>"
-                    "📚 Գիրքը հասանելի է առցանց</p>",
+                    "Գիրքը հասանելի է առցանց</p>",
                     unsafe_allow_html=True
                 )
                 st.link_button(
-                    "📖 Բացել Գիրքը Պլանավորման Համար",
+                    "Բացել Գիրքը Պլանավորման Համար",
                     book_info['link'],
                     use_container_width=True,
                     type="primary"
@@ -376,13 +375,13 @@ def show_reading_plan(books_df, user):
         reading_speed = user.get('reading_speed')
 
         if reading_speed is None or reading_speed <= 0:
-            custom_info("📝 Ձեր ընթերցման արագությունը դեռ հաշվարկված չէ")
+            custom_info("Ձեր ընթերցման արագությունը դեռ հաշվարկված չէ")
             st.caption("Գրանցեք առաջին ընթերցումը՝ ավելի ճշգրիտ պլան ստանալու համար")
             return
 
         # Let user choose how many days they want
         target_days = st.number_input(
-            "🎯 Քանի օրում ցանկանում եք ավարտել գիրքը?",
+            "Քանի օրում ցանկանում եք ավարտել գիրքը?",
             min_value=1,
             max_value=365,
             value=10,  
@@ -415,7 +414,7 @@ def show_reading_plan(books_df, user):
             custom_info(f"Ընդհանուր ընթերցման ժամանակ: {total_hours:.1f} ժամ")
 
             # Weekly view (based on the chosen target)
-            st.subheader("📅 Շաբաթական պլան")
+            st.subheader("Շաբաթական պլան")
             st.write(f"Շաբաթական էջեր՝ **{required_daily_pages * 7:.1f}** էջ")
             st.write(f"Շաբաթական ժամանակ՝ **{required_daily_minutes * 7:.0f}** րոպե")
 
