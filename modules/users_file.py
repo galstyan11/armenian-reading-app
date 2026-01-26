@@ -191,7 +191,6 @@ def show_reminders(user):
         else:
             custom_success("Այսօր ընթերցման պլան չկա")
 
-
 def show_settings(user, books_df):
     st.subheader("Օգտատիրոջ Կարգավորումներ")
     
@@ -232,12 +231,23 @@ def show_settings(user, books_df):
         key="settings_genres"
     )
     
-    current_language = user.get('preferred_language', 'Հայերեն')
     lang_options = ["Հայերեն", "Ռուսերեն", "Անգլերեն"]
-    new_preferred_language = st.selectbox(
-        "Նախընտրելի Լեզու",
-        lang_options,
-        index=lang_options.index(current_language)
+
+    current = user.get('preferred_languages')
+    if current is None:
+        old_lang = user.get('preferred_language')
+        current_languages = [old_lang] if isinstance(old_lang, str) and old_lang else []
+    elif isinstance(current, list):
+        current_languages = current
+    else:
+        current_languages = []
+
+    new_preferred_languages = st.multiselect(
+        "Նախընտրելի Լեզուներ",
+        options=lang_options,
+        default=current_languages,
+        placeholder="Ընտրեք մեկ կամ ավելի լեզուներ",
+        key="settings_languages"
     )
     
     new_age = st.number_input(
@@ -248,26 +258,37 @@ def show_settings(user, books_df):
         step=1
     )
     
-    new_profession = st.text_input("Մասնագիտություն", value=user.get('profession', ''))
-    new_bio = st.text_area("Իմ մասին", value=user.get('bio', ''), height=100)
+    # SAFE DEFAULT FOR TEXT FIELDS – prevents widget receiving None
+    profession_default = user.get('profession')
+    profession_default = str(profession_default) if profession_default is not None else ""
+    new_profession = st.text_input("Մասնագիտություն", value=profession_default)
+
+    bio_default = user.get('bio')
+    bio_default = str(bio_default) if bio_default is not None else ""
+    new_bio = st.text_area("Իմ մասին", value=bio_default, height=100)
     
     if st.button("Պահպանել Կարգավորումները"):
         try:
             users = load_users()
             username = user['username']
             if username in users:
+                # Uncomment for 30 seconds to see real values when error happens
+                # st.write("DEBUG profession:", type(new_profession), repr(new_profession))
+                # st.write("DEBUG bio:", type(new_bio), repr(new_bio))
+
                 users[username].update({
                     'daily_reading_time': new_daily_time,
                     'preferred_genres': new_preferred_genres,
-                    'preferred_language': new_preferred_language,
+                    'preferred_languages': new_preferred_languages,
                     'age': new_age if new_age != 18 else None,
-                    'profession': new_profession.strip() or None,
-                    'bio': new_bio.strip() or None,
+                    'profession': (new_profession or "").strip() or None,
+                    'bio': (new_bio or "").strip() or None,
                 })
+                
+                users[username].pop('preferred_language', None)  # cleanup
                 
                 save_users(users)
                 
-                # Update session state
                 st.session_state.user = users[username].copy()
                 st.session_state.user['username'] = username
                 st.session_state.user['id'] = username
@@ -275,8 +296,7 @@ def show_settings(user, books_df):
                 custom_success("Կարգավորումները պահպանված են!")
                 st.rerun()
         except Exception as e:
-            st.error(f"Սխալ կարգավորումները պահպանելիս: {e}")
-
+            st.error(f"Սխալ կարգավորումները պահպանելիս: {str(e)}")
 
 def show_read_books_section(viewed_user):
     st.subheader("Կարդացած Գրքեր")
@@ -333,6 +353,7 @@ def show_read_books_section(viewed_user):
                 else:
                     st.caption(f"{book['pages_read']} էջ")
             st.markdown("")
+
 
 def show_full_profile(current_user, books_df):
     viewed_username = st.session_state.get('viewed_profile', None)
@@ -391,11 +412,6 @@ def show_full_profile(current_user, books_df):
 
     profile_tabs = st.tabs(["📋 Տեղեկություններ", "📊 Վիճակագրություն", "⚙️ Կարգավորումներ", "⏰ Հիշեցումներ"])
 
-    # Optional: force tab selection if coming from other profile view
-    if 'active_profile_tab' in st.session_state:
-        # Streamlit tabs don't support direct selection, but rerun helps
-        pass
-
     with profile_tabs[0]:
         col1, col2 = st.columns([1, 3])
         with col1:
@@ -424,7 +440,15 @@ def show_full_profile(current_user, books_df):
             st.markdown("**Ընթերցման Նախապատվություններ**")
             speed_display = f"{viewed_user['reading_speed']:.1f} էջ/րոպե" if viewed_user.get('reading_speed') is not None else "Դեռ չի հաշվվել"
             st.write(f"• Արագություն: {speed_display}")
-            st.write(f"• Լեզու: {viewed_user.get('preferred_language', 'Հայերեն')}")
+
+            # Improved language display with backward compatibility
+            langs = viewed_user.get('preferred_languages', [])
+            if not langs and 'preferred_language' in viewed_user:
+                old_lang = viewed_user['preferred_language']
+                langs = [old_lang] if old_lang and isinstance(old_lang, str) else []
+            lang_text = ', '.join(langs) if langs else 'Չի նշված'
+            st.write(f"• Լեզուներ: {lang_text}")
+
             if viewed_user.get('preferred_genres'):
                 st.write(f"• Ժանրեր: {', '.join(viewed_user['preferred_genres'])}")
 

@@ -22,7 +22,7 @@ def show_creative_works(user):
 
     # ── Tab 1: Create new work ────────────────────────────────────────
     with tab1:
-        st.write("###Հրապարակել Նոր Ստեղծագործություն")
+        st.write("### Հրապարակել Նոր Ստեղծագործություն")
 
         with st.form("creative_work_form", clear_on_submit=True):
             work_title = st.text_input("Վերնագիր *", placeholder="Ձեր ստեղծագործության վերնագիրը...")

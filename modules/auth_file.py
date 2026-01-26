@@ -9,12 +9,10 @@ from modules.time_utils import iso_now_utc
 
 
 def hash_password(password: str) -> str:
-    """Simple SHA-256 hash of the password"""
     return hashlib.sha256(password.encode()).hexdigest()
 
 
 def load_users() -> dict:
-    """Load all users from JSON file"""
     try:
         if os.path.exists('data/users.json'):
             with open('data/users.json', 'r', encoding='utf-8') as f:
@@ -26,7 +24,6 @@ def load_users() -> dict:
 
 
 def save_users(users: dict):
-    """Save users dictionary to JSON file"""
     os.makedirs('data', exist_ok=True)
     try:
         with open('data/users.json', 'w', encoding='utf-8') as f:
@@ -41,38 +38,36 @@ def create_user(
     password: str,
     daily_reading_time: int = 30,
     preferred_genres: list = None,
-    preferred_language: str = 'Հայերեն',
+    preferred_languages: list = None,
     age: int = None,
     profession: str = None,
     bio: str = None
 ) -> bool:
-    """
-    Create a new user account.
-    Returns True on success, False if username/email already exists.
-    """
     users = load_users()
 
-    # Check for existing username
     if username in users:
         st.error("Այս օգտանունն արդեն գոյություն ունի")
         return False
 
-    # Check for existing email
     if any(user_data.get('email') == email for user_data in users.values()):
         st.error("Այս էլ․ փոստն արդեն գոյություն ունի")
         return False
 
+    # Safe text cleaning at registration
+    profession_clean = (str(profession or "")).strip() or None
+    bio_clean = (str(bio or "")).strip() or None
+
     users[username] = {
         'email': email,
         'password': hash_password(password),
-        'reading_speed': None, 
+        'reading_speed': None,
         'daily_reading_time': daily_reading_time,
         'preferred_genres': preferred_genres or [],
-        'preferred_language': preferred_language,
+        'preferred_languages': preferred_languages or [],
         'age': age,
-        'profession': profession,
-        'bio': bio,
-        'created_at': iso_now_utc(),  
+        'profession': profession_clean,
+        'bio': bio_clean,
+        'created_at': iso_now_utc(),
     }
 
     save_users(users)
@@ -80,36 +75,32 @@ def create_user(
 
 
 def verify_user(username: str, password: str) -> dict | None:
-    """Verify credentials and return user data (without password) or None"""
     users = load_users()
-
     if username in users and users[username]['password'] == hash_password(password):
         user_data = users[username].copy()
         user_data['username'] = username
-        user_data['id'] = username  # Using username as ID (consistent with your app)
+        user_data['id'] = username
         return user_data
-
     return None
 
 
 def logout():
-    """Clear session state and redirect to login"""
     st.session_state.user = None
     st.session_state.page = "login"
     st.rerun()
 
+
 def show_auth_page(books_df):
     st.markdown(
-            f"""<div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
-                    Բարի գալուստ
-                </div>
-                <div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
-                    <span style="color: #f77214; font-weight: 700;">ԿԱՐԴԱ</span>
-                    <span style="color: #672f1b; font-weight: 700;"> ինձ հետ</span> հավելված!
-                </div>
+        """<div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
+                Բարի գալուստ
+            </div>
+            <div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
+                <span style="color: #f77214; font-weight: 700;">ԿԱՐԴԱ</span>
+                <span style="color: #672f1b; font-weight: 700;"> ինձ հետ</span> հավելված!
             </div>""",
-            unsafe_allow_html=True
-        )
+        unsafe_allow_html=True
+    )
 
     tab1, tab2 = st.tabs(["Մուտք Գործել", "Գրանցվել"])
 
@@ -138,12 +129,8 @@ def show_auth_page(books_df):
 
         reg_username = st.text_input("Օգտանուն *", key="reg_username")
         reg_email = st.text_input("Էլ. Փոստ *", key="reg_email")
-        reg_password = st.text_input(
-            "Գաղտնաբառ *",
-            type="password",
-            key="reg_password",
-            help="Գաղտնաբառը պետք է լինի առնվազն 4 նիշ"
-        )
+        reg_password = st.text_input("Գաղտնաբառ *", type="password", key="reg_password",
+                                     help="Առնվազն 4 նիշ")
         reg_confirm_password = st.text_input("Հաստատել Գաղտնաբառը *", type="password", key="reg_confirm_password")
 
         reg_age = st.number_input("Տարիք", min_value=13, max_value=120, value=None, step=1, key="reg_age")
@@ -152,13 +139,10 @@ def show_auth_page(books_df):
 
         st.subheader("Ընթերցման Նախապատվություններ")
 
-        reg_daily_time = st.slider(
-            "Օրական Ընթերցման Ժամանակ (րոպե)",
-            15, 180, 30,
-            key="reg_time"
-        )
+        reg_daily_time = st.slider("Օրական Ընթերցման Ժամանակ (րոպե)", 15, 180, 30, key="reg_time")
 
         available_genres = books_df['genre'].unique().tolist() if not books_df.empty else []
+
         reg_preferred_genres = st.multiselect(
             "Նախընտրելի Ժանրեր",
             available_genres,
@@ -167,10 +151,12 @@ def show_auth_page(books_df):
             key="reg_genres"
         )
 
-        reg_preferred_language = st.selectbox(
-            "Նախընտրելի Լեզու",
+        reg_preferred_languages = st.multiselect(
+            "Նախընտրելի Լեզուներ",
             ["Հայերեն", "Ռուսերեն", "Անգլերեն"],
-            key="reg_language"
+            default=[],
+            placeholder="Կարող եք ընտրել մեկ կամ ավելի լեզուներ",
+            key="reg_languages"
         )
 
         if st.button("Գրանցվել", key="reg_btn", type="primary"):
@@ -191,10 +177,10 @@ def show_auth_page(books_df):
                     password=reg_password,
                     daily_reading_time=reg_daily_time,
                     preferred_genres=reg_preferred_genres,
-                    preferred_language=reg_preferred_language,
-                    age=reg_age if reg_age is not None else None,
-                    profession=reg_profession.strip() or None,
-                    bio=reg_bio.strip() or None
+                    preferred_languages=reg_preferred_languages,
+                    age=reg_age if reg_age else None,
+                    profession=reg_profession,
+                    bio=reg_bio
                 )
                 if success:
                     new_user = verify_user(reg_username.strip(), reg_password)
