@@ -1,0 +1,2 @@
+-- uploading .cvs file into the mysql books table
+-- I'll finish it later :)
