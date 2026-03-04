@@ -1,96 +1,185 @@
 # modules/auth_file.py
+from datetime import datetime, timezone
+
 import streamlit as st
 import hashlib
-import json
-import os
+from typing import Dict, Optional, List
 
+from modules.db import query, json_str, json_obj
 from modules.custom_alerts import custom_success, custom_info
-from modules.time_utils import iso_now_utc
+
 
 
 def hash_password(password: str) -> str:
+    """Hash password using SHA-256"""
     return hashlib.sha256(password.encode()).hexdigest()
 
-
-def load_users() -> dict:
-    try:
-        if os.path.exists('data/users.json'):
-            with open('data/users.json', 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return {}
-    except Exception as e:
-        print(f"Error loading users: {e}")
-        return {}
-
-
-def save_users(users: dict):
-    os.makedirs('data', exist_ok=True)
-    try:
-        with open('data/users.json', 'w', encoding='utf-8') as f:
-            json.dump(users, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error saving users: {e}")
-
+def verify_password(plain_password: str, stored_hash: str) -> bool:
+    return hash_password(plain_password) == stored_hash
 
 def create_user(
     username: str,
     email: str,
     password: str,
     daily_reading_time: int = 30,
-    preferred_genres: list = None,
-    preferred_languages: list = None,
-    age: int = None,
-    profession: str = None,
-    bio: str = None
+    preferred_genres: Optional[List[str]] = None,
+    preferred_languages: Optional[List[str]] = None,
+    age: Optional[int] = None,
+    profession: Optional[str] = None,
+    bio: Optional[str] = None
 ) -> bool:
-    users = load_users()
+    username = username.strip()
+    email = email.strip()
 
-    if username in users:
-        st.error("Այս օգտանունն արդեն գոյություն ունի")
+    if not username or not email or not password:
+        st.error("Բոլոր պարտադիր դաշտերը լրացված չեն")
         return False
 
-    if any(user_data.get('email') == email for user_data in users.values()):
-        st.error("Այս էլ․ փոստն արդեն գոյություն ունի")
+    # 1. Check if user/email exists
+    try:
+        existing = query(
+            """
+            SELECT username, email 
+            FROM users 
+            WHERE username = %s OR email = %s
+            LIMIT 2
+            """,
+            (username, email),
+            fetch=True
+        )
+    except Exception as e:
+        st.error(f"Սխալ ստուգելիս՝ {str(e)}")
+        print(f"Duplicate check error: {e}")
         return False
 
-    # Safe text cleaning at registration
+    if existing:
+        for row in existing:
+            if row['username'] == username:
+                st.error("Այս օգտանունն արդեն գոյություն ունի")
+                return False
+            if row['email'] == email:
+                st.error("Այս էլ․ փոստն արդեն գոյություն ունի")
+                return False
+
+    # Clean fields
     profession_clean = (str(profession or "")).strip() or None
     bio_clean = (str(bio or "")).strip() or None
 
-    users[username] = {
-        'email': email,
-        'password': hash_password(password),
-        'reading_speed': None,
-        'daily_reading_time': daily_reading_time,
-        'preferred_genres': preferred_genres or [],
-        'preferred_languages': preferred_languages or [],
-        'age': age,
-        'profession': profession_clean,
-        'bio': bio_clean,
-        'created_at': iso_now_utc(),
-    }
+    # 2. Try to insert
+    try:
+        success = query("""
+            INSERT INTO users (
+                username, email, password_hash, daily_reading_time,
+                preferred_genres, preferred_languages,
+                age, profession, bio, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            username,
+            email,
+            hash_password(password),
+            daily_reading_time,
+            json_str(preferred_genres or []),
+            json_str(preferred_languages or []),
+            age,
+            profession_clean,
+            bio_clean,
+            datetime.now(timezone.utc)
+        ))
 
-    save_users(users)
-    return True
+        if success:
+            custom_success("Գրանցումը հաջող էր!")
+            print(f"User created: {username}")
+            return True
+        else:
+            st.error("Չհաջողվեց ավելացնել օգտատերը MySQL-ում")
+            print("Insert returned False — check db connection / table structure")
+            return False
+
+    except Exception as insert_error:
+        st.error(f"Տվյալների բազայի սխալ գրանցման ժամանակ: {str(insert_error)}")
+        print(f"Insert error: {insert_error}")
+        return False
+
+def verify_user(username: str, password: str) -> Optional[Dict]:
+    """
+    Verify username + password.
+    Returns user dict (with id = username) or None.
+    """
+    user = query("""
+        SELECT 
+            username, email, password_hash,
+            daily_reading_time, reading_speed,
+            preferred_genres, preferred_languages,
+            age, profession, bio, created_at
+        FROM users 
+        WHERE username = %s
+        LIMIT 1
+    """, (username.strip(),), fetch=True, one=True)
+
+    if not user:
+        return None
+
+    if user['password_hash'] != hash_password(password):
+        return None
+
+    # Convert JSON strings → python lists
+    user['preferred_genres']    = json_obj(user['preferred_genres'])
+    user['preferred_languages'] = json_obj(user['preferred_languages'])
+
+    # Keep your existing convention
+    user['id'] = user['username']
+
+    return user
 
 
-def verify_user(username: str, password: str) -> dict | None:
-    users = load_users()
-    if username in users and users[username]['password'] == hash_password(password):
-        user_data = users[username].copy()
-        user_data['username'] = username
-        user_data['id'] = username
-        return user_data
-    return None
+def load_friends(username: str) -> List[str]:
+    """Return list of friend's usernames"""
+    rows = query("""
+        SELECT 
+            CASE 
+                WHEN user1 = %s THEN user2 
+                ELSE user1 
+            END AS friend
+        FROM friendships
+        WHERE user1 = %s OR user2 = %s
+    """, (username, username, username), fetch=True)
+
+    return [row['friend'] for row in rows]
+
+
+def add_friend(username: str, friend_username: str) -> bool:
+    """Add friend (mutual, stored sorted to avoid duplicates)"""
+    if username == friend_username:
+        return False
+
+    u1, u2 = sorted([username.strip(), friend_username.strip()])
+
+    # INSERT IGNORE prevents duplicate entries
+    return bool(query("""
+        INSERT IGNORE INTO friendships (user1, user2, created_at)
+        VALUES (%s, %s, %s)
+    """, (u1, u2, datetime.now(timezone.utc))))
+
+
+def remove_friend(username: str, friend_username: str) -> bool:
+    """Remove friend relationship"""
+    u1, u2 = sorted([username.strip(), friend_username.strip()])
+
+    return bool(query("""
+        DELETE FROM friendships 
+        WHERE user1 = %s AND user2 = %s
+    """, (u1, u2)))
 
 
 def logout():
+    """Clear session and go back to login"""
     st.session_state.user = None
     st.session_state.page = "login"
     st.rerun()
 
 
 def show_auth_page(books_df):
+    """Login / Register UI — unchanged logic, just using new functions"""
     st.markdown(
         """<div style="font-size: 28px; font-weight: 400; line-height: 1.3;">
                 Բարի գալուստ
@@ -112,7 +201,7 @@ def show_auth_page(books_df):
 
         if st.button("Մուտք Գործել", key="login_btn"):
             if login_username.strip() and login_password.strip():
-                user = verify_user(login_username.strip(), login_password)
+                user = verify_user(login_username.strip(), login_password.strip())
                 if user:
                     st.session_state.user = user
                     st.session_state.page = "main"

@@ -1,51 +1,49 @@
+# modules/time_utils.py
 from datetime import datetime, timezone
 import pytz
 
-# Armenia timezone (Asia/Yerevan = UTC+4, no DST since 2012)
 ARMENIA_TZ = pytz.timezone("Asia/Yerevan")
 
-
-# ── Creation / Storage ────────────────────────────────────────
-
 def now_utc() -> datetime:
-    """Current time in UTC (timezone-aware)"""
     return datetime.now(timezone.utc)
 
+def parse_iso_or_datetime(value):
+    if value is None:
+        return None
 
-def iso_now_utc() -> str:
-    """ISO 8601 string in UTC – ready for JSON"""
-    return now_utc().isoformat()
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            # DB datetime → treat as UTC
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(ARMENIA_TZ)
 
+    if isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(ARMENIA_TZ)
+        except:
+            return None
 
-# ── Parsing ────────────────────────────────────────────────────
+    return None
 
-def parse_iso(dt_str: str) -> datetime:
-    """Parse ISO string → timezone-aware UTC datetime"""
-    dt = datetime.fromisoformat(dt_str)
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
+# modules/time_utils.py  (add or replace)
 
+def format_armenia_date_only(dt) -> str:
+    """Only date: DD.MM.YYYY"""
+    local = parse_iso_or_datetime(dt)
+    if local is None:
+        return "—"
+    return local.strftime("%d.%m.%Y")
 
-# ── Conversion ─────────────────────────────────────────────────
+def format_armenia_datetime(dt) -> str:
+    """Date + time in Yerevan timezone"""
+    local = parse_iso_or_datetime(dt)
+    if local is None:
+        return "—"
+    return local.strftime("%d.%m.%Y %H:%M")
 
-def to_armenia(dt: datetime) -> datetime:
-    """Convert datetime (aware or naive) → Asia/Yerevan"""
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(ARMENIA_TZ)
-
-
-# ── Formatting for UI ──────────────────────────────────────────
-
-def format_armenia(dt: datetime, with_seconds: bool = False) -> str:
-    """Format as YYYY-MM-DD HH:MM   (seconds optional)"""
-    local = to_armenia(dt)
-    if with_seconds:
-        return local.strftime("%Y-%m-%d %H:%M:%S")
-    return local.strftime("%Y-%m-%d %H:%M")
-
-
-def format_armenia_date_only(dt: datetime) -> str:
-    """Just date: YYYY-MM-DD"""
-    return to_armenia(dt).strftime("%Y-%m-%d")
+def format_armenia_datetime_short(dt) -> str:
+    """Date + very short time if needed (but we won't use time anymore)"""
+    return format_armenia_date_only(dt)

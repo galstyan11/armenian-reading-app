@@ -39,3 +39,41 @@ section[data-testid="stMetric"] {
 section[data-testid="stMetric"], .streamlit-expander {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
+
+/* Chat Message Bubbles - Cozy Autumn Theme */
+.chat-message {
+    padding: 12px 16px;
+    border-radius: 16px;
+    margin: 10px 0;
+    max-width: 75%;
+    box-shadow: 0 2px 6px rgba(191, 107, 59, 0.15);  /* subtle #BF6B3B shadow */
+    position: relative;
+}
+
+/* Your own messages (right-aligned) */
+.chat-message.you {
+    background-color: #E8D5C5;          /* warm light beige */
+    color: #3F2A1D;
+    margin-left: auto;
+    margin-right: 0;
+    border-bottom-right-radius: 4px;    /* cute corner cut */
+}
+
+/* Friend's messages (left-aligned) */
+.chat-message.friend {
+    background-color: #FFFFFF;          /* clean white / very light */
+    color: #3F2A1D;
+    margin-left: 0;
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+}
+
+/* Timestamp / name inside bubbles */
+.chat-message small {
+    color: #6B4C3A;                     /* darker brown for readability */
+    font-size: 0.82em;
+    display: block;
+    margin-bottom: 4px;
+    opacity: 0.9;
+}
+

@@ -1,33 +1,40 @@
 {
-  "Մ": {
-    "email": "Մ",
-    "password": "b6118f5ba71efb59a4f3c5dce2738d8a8fcffc78452fd2a76a218e1b422da87b",
+  "m": {
+    "email": "m",
+    "password": "87eee136f73cd0a771068277f170bd4ad82d929fd17507e3939a5182186d40c1",
     "reading_speed": null,
-    "daily_reading_time": 30,
-    "preferred_genres": [],
-    "preferred_languages": [
-      "Ռուսերեն"
-    ],
-    "age": null,
-    "profession": null,
-    "bio": null,
-    "created_at": "2026-01-26T15:54:13.112109+00:00"
-  },
-  "ՄՄ": {
-    "email": "մմմ",
-    "password": "b6118f5ba71efb59a4f3c5dce2738d8a8fcffc78452fd2a76a218e1b422da87b",
-    "reading_speed": null,
-    "daily_reading_time": 124,
+    "daily_reading_time": 48,
     "preferred_genres": [
+      "Ավանդապատում",
       "Դետեկտիվ"
     ],
     "preferred_languages": [
       "Ռուսերեն",
       "Հայերեն"
     ],
-    "age": 22,
+    "age": null,
     "profession": null,
-    "bio": "վվվկյբկ",
-    "created_at": "2026-01-26T16:26:54.322399+00:00"
+    "bio": null,
+    "created_at": "2026-02-19T18:34:45.241332+00:00",
+    "friends": [
+      "mm"
+    ],
+    "outgoing_requests": []
+  },
+  "mm": {
+    "email": "mm",
+    "password": "87eee136f73cd0a771068277f170bd4ad82d929fd17507e3939a5182186d40c1",
+    "reading_speed": null,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_languages": [],
+    "age": null,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-02-19T18:54:35.327695+00:00",
+    "friends": [
+      "m"
+    ],
+    "incoming_requests": []
   }
 }
