@@ -1,0 +1,40 @@
+{
+  "m": {
+    "email": "m",
+    "password": "87eee136f73cd0a771068277f170bd4ad82d929fd17507e3939a5182186d40c1",
+    "reading_speed": null,
+    "daily_reading_time": 48,
+    "preferred_genres": [
+      "Ավանդապատում",
+      "Դետեկտիվ"
+    ],
+    "preferred_languages": [
+      "Ռուսերեն",
+      "Հայերեն"
+    ],
+    "age": null,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-02-19T18:34:45.241332+00:00",
+    "friends": [
+      "mm"
+    ],
+    "outgoing_requests": []
+  },
+  "mm": {
+    "email": "mm",
+    "password": "87eee136f73cd0a771068277f170bd4ad82d929fd17507e3939a5182186d40c1",
+    "reading_speed": null,
+    "daily_reading_time": 30,
+    "preferred_genres": [],
+    "preferred_languages": [],
+    "age": null,
+    "profession": null,
+    "bio": null,
+    "created_at": "2026-02-19T18:54:35.327695+00:00",
+    "friends": [
+      "m"
+    ],
+    "incoming_requests": []
+  }
+}
