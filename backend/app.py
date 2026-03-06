@@ -1,9 +1,21 @@
 # app.py
 import streamlit as st
+import os
+
 from modules.auth_file import show_auth_page
 from modules.books_csv import load_books
 from modules.ui_components import show_header, show_main_tabs
-#from books_import import import_books_from_csv_to_db
+from modules.db import init_database
+
+if "db_initialized" not in st.session_state:
+    print("Performing one-time database initialization...")
+    success = init_database()
+    if success:
+        st.session_state.db_initialized = True
+        print("Database schema initialized successfully.")
+    else:
+        st.error("Database initialization failed — check logs.")
+        st.stop()  # optional: stop app if DB setup failed
 
 st.set_page_config(
     page_title="Կարդա ինձ հետ",
