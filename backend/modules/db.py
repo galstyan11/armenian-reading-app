@@ -3,26 +3,31 @@ import mysql.connector
 from mysql.connector import Error
 import json
 import os
+import traceback
 from dotenv import load_dotenv
-from streamlit import cursor
+#from streamlit import cursor
 
 load_dotenv()
-
 def get_connection():
     try:
+        print("Connecting to DB...")
+        print("HOST:", os.getenv("DB_HOSTNAME"))
+        print("USER:", os.getenv("DB_USERNAME"))
+
         conn = mysql.connector.connect(
-            host       = os.getenv("DB_HOSTNAME", "127.0.0.1"),
-            port       = int(os.getenv("DB_PORT", 3306)),
-            user       = os.getenv("DB_USERNAME", "root"),
-            password   = os.getenv("DB_PASSWORD", ""),
-            database   = os.getenv("DB_DBNAME", "reading_app"),
-            charset    = 'utf8mb4',
-            autocommit = True
+            host="db",
+            port=3306,
+            user="root",
+            password="example",
+            database="reading_app",
         )
 
+        print("DB connected")
         return conn
-    except Error as e:
-        print(f"DB connection error: {e}")
+
+    except Exception as e:
+        print("DB ERROR:", e)
+        traceback.print_exc()
         return None
 
 from contextlib import contextmanager

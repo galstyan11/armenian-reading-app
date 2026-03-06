@@ -3,6 +3,8 @@ services:
   app:
     build: ./backend
     container_name: app
+    env_file:
+      - ./backend/.env
     environment:
       STREAMLIT_LOG_LEVEL: debug
     ports:
@@ -14,7 +16,7 @@ services:
         condition: service_healthy
 
   db:
-    image: mysql/mysql-server
+    image: mysql:8.0
     container_name: db
     ports:
       - "3306:3306"
