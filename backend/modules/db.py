@@ -13,13 +13,13 @@ def get_connection():
     """Create a connection — used by context manager and init"""
     try:
         print("Connecting to DB...")
-        print("HOST:", os.getenv("DB_HOSTNAME", "127.0.0.1"))
+        print("HOST:", os.getenv("DB_HOSTNAME", "db"))
         print("PORT:", os.getenv("DB_PORT", "3306"))
         print("USER:", os.getenv("DB_USERNAME", "root"))
         print("DB:", os.getenv("DB_DBNAME", "reading_app"))
 
         conn = mysql.connector.connect(
-            host=os.getenv("DB_HOSTNAME", "127.0.0.1"),
+            host=os.getenv("DB_HOSTNAME", "db"),
             port=int(os.getenv("DB_PORT", "3306")),
             user=os.getenv("DB_USERNAME", "root"),
             password=os.getenv("DB_PASSWORD", "galstyanm2311"),
@@ -47,10 +47,10 @@ def init_database():
     conn_no_db = None
     try:
         conn_no_db = mysql.connector.connect(
-            host=os.getenv("DB_HOSTNAME", "127.0.0.1"),
+            host=os.getenv("DB_HOSTNAME", "db"),
             port=int(os.getenv("DB_PORT", "3306")),
             user=os.getenv("DB_USERNAME", "root"),
-            password=os.getenv("DB_PASSWORD", ""),
+            password=os.getenv("DB_PASSWORD", "galstyanm2311"),
             charset='utf8mb4',
         )
         cursor = conn_no_db.cursor()
