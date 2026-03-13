@@ -39,6 +39,7 @@ def get_connection():
 def init_database():
     """
     Create database + all tables if they don't exist.
+    Also imports initial books data from CSV if the books table is empty.
     Safe to call multiple times (uses IF NOT EXISTS).
     """
     print("Initializing database schema...")
@@ -70,7 +71,7 @@ def init_database():
         traceback.print_exc()
         return False
 
-    # Step 2: Connect to the actual database and create tables
+    # Step 2: Connect to the actual database and create tables + optional import
     with get_cursor() as (cursor, conn):
         try:
             # users
@@ -243,6 +244,35 @@ def init_database():
                     FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
                 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
             """)
+
+            # ─────────────────────────────── Books import ───────────────────────────────
+            print("Checking books table population status...")
+            cursor.execute("SELECT COUNT(*) AS cnt FROM books")
+            result = cursor.fetchone()
+            book_count = result['cnt'] if result else 0
+
+            if book_count == 0:
+                print("books table is empty → running initial import from CSV...")
+                try:
+                    # Adjust import path according to your project structure
+                    from books_import import import_books_from_csv_to_db
+                    # or: from app.scripts.books_import import ...
+                    # or: from .books_import import ...
+
+                    success = import_books_from_csv_to_db()
+                    if success:
+                        print("→ Initial books import completed successfully.")
+                    else:
+                        print("→ Initial books import failed — continuing without books data.")
+                except ImportError as ie:
+                    print(f"Cannot import books_import module: {ie}")
+                except Exception as import_err:
+                    print(f"Error during books import: {import_err}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print(f"books table already contains {book_count} rows → skipping import.")
+            # ────────────────────────────────────────────────────────────────────────
 
             conn.commit()
             print("All tables checked/created successfully.")
